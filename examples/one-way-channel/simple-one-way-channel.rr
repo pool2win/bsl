@@ -1,0 +1,50 @@
+# Configuration
+
+musig off
+taproot off
+
+keypair alice
+keypair bob
+
+# Funding tx, created by alice, signed and sent to bob
+
+alice_utxo = utxo with txid 1 and vout 0 amount 10
+
+funding_tx = new transaction (
+           input alice_utxo:0
+           output multisig 2 of 2 alice bob amounts alice 10 bob 0
+)
+
+alice_signed_funding_tx = sign funding_tx with alice
+
+send alice_signed_funding_tx to bob
+
+# Refund tx, created by bob, signed and sent to alice with locktime
+
+refund_tx = new transaction (
+          timelock 1 week
+          input funding_tx:0
+          output p2wpkh alice amount 10
+)
+
+bob_signed_refund_tx = sign refund_tx with bob
+
+send bob_signed_refund_tx to alice
+
+broadcast alice_signed_funding_tx and wait for confirmations
+
+# Commitments, created by alice to update channel state paying one-way to bob
+
+commitment_tx = new transaction (
+              input funding_tx:0
+              ouputs p2wpkh alice amount 9 p2wpkh bob amount 1
+              signed by alice
+)
+
+send commitment_tx to bob
+
+# Closing the channel by bob
+
+bob_closing_channel = sign commitment_tx with bob
+
+broadcast bob_closing_channel and wait for confirmations

@@ -1,0 +1,30 @@
+# Higher level language for bitcoin scripting
+# First use case LN
+#  Description: https://github.com/lnbook/lnbook/blob/develop/07_payment_channels.asciidoc
+#  Scripts to generate: https://github.com/lightning/bolts/blob/master/03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats
+
+# Define participants as keypair
+
+keypair alice
+keypair bob
+
+# Funding tx
+
+fund_tx = make lnfund with balances alice 10 bob 0
+
+refund_tx = make lnrefund for fund_tx with balances alice 10 bob 0
+
+bob_signature = sign refund_tx with bob
+
+validate bob_signature on refund_tx
+
+sign fund_tx with alice
+
+broadcast fund_tx from alice
+
+# Asymetric commitments, with local output time locked and local
+# immediately spendable with a revocation key
+
+alice_commitment_1 = make commitmemt with local alice and balances alice 9 bob 1
+
+bob_commitment_1 = make commitment with local bob and balances alice 9 bob 1

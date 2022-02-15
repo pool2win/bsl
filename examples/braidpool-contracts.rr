@@ -1,0 +1,111 @@
+# Configuration
+
+musig off
+taproot off
+
+# A participant is a keypair, adaptor signature key and nonce as well
+# as a network address
+
+miner = participant
+hub = participant
+market_maker = participant
+
+# Adapator Signature for Miner from Market Maker
+
+send miner.A and miner.R from miner to market_maker
+
+# Contract between Miner and Hub
+
+# Coinbase
+
+hub_secret = random
+
+coinbase_output = output (
+                (multisig 2 of 2 miner hub)
+                or (hash160 hub_secret and p2wpkh hub)
+                or (p2wpkh miner and older than 6 months)
+)
+
+# funding tx
+
+hub_utxo = utxo{txid=1, vout=0}
+
+funding_tx = transaction (
+           input hub_utxo:0
+           outputs [
+                    (multisig 2 of 2 miner hub amount R)
+                    (p2wpkh hub and hash160 hub_secret amount R)
+                   ]
+)
+
+hub_signed_funding_tx = sign funding_tx with hub
+
+send hub_signed_funding_tx from hub to miner
+
+# refunding tx
+
+refund_tx = transaction (
+          timelock 6 months
+          input funding_tx:0
+          output p2wpkh hub
+)
+
+miner_signed_refund_tx = sign refund_tx with miner
+
+send miner_signed_refund_tx to hub
+
+# Commitment transactions
+# These are updated to update the balance in the channel, i.e. make payments to miner
+
+pre_commitment_tx = transaction (
+              input funding_tx
+              outputs [
+                        (p2wpkh hub amount R - payout)
+                        (p2wpkh miner amount payout and hash160 hub_secret)
+                        (p2wpkh  amount payout and hash160 hub_secret)
+                      ]
+)
+
+signed_pre_commitment_tx = sign pre_commitmemt_tx with hub
+
+send pre_signed_commitment_tx to hub
+
+# If all miners have been sent a 'precommitment' tx, then the succesfull miner signs coinbase.
+# Now the hub can spend the coinbase and therefore sends a commitement
+# tx to all miners, this time without the hashlock.
+
+commitment_tx = transaction (
+              input funding_tx
+              outputs [
+                        (p2wpkh hub amount R - payout)
+                        (p2wpkh miner amount payout)
+                      ]
+)
+
+signed_commitment_tx = sign commitmemt_tx with hub
+
+send signed_commitment_tx to hub
+
+# Miner & Market Maker DLC's Contract exectution transaction (CET)
+
+dlc_fund_tx = transaction (
+            input market_maker utxo
+            output 2 of 2 multisig miner and market maker
+)
+
+dlc_refund_tx = transaction (
+              timelock 1 month
+              input dlc_fund_tx
+              output p2pkh market_maker
+)
+
+cet = transaction (
+    input dlc_fund_tx
+    outputs [
+            (p2pkh miner_state_depedent_cet_key amount state_dependent_amount)
+            (p2pkh market_maker_state_dependent_cet_key amount state_dependent_amount)
+    ]
+)
+
+hub_oracle_announcement = sign state
+

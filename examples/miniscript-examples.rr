@@ -1,0 +1,33 @@
+# single key
+# miniscript: pk(key_1)
+
+output = signed with key key_1
+
+
+# one of two keys (equally likely)
+# miniscript: or(pk(key_1),pk(key_2))
+
+output = signed with key key_1 or signed with key key_2
+
+# one of two keys (one more likely)
+# miniscript: or(99@pk(key_1),pk(key_2))
+
+output = 99% signed with key key_1 or signed with key key_2
+
+output = 99% signed with key key_1 or 1% signed with key key_2
+
+# A user and a 2FA service need to sign off, but after 90 days the
+# user alone is enough
+miniscript: and(pk(key_user),or(99@pk(key_service),older(12960)))
+
+output = signed with key key_user and (99% signed with key key_service or older than 12960)
+
+# A 3-of-3 that turns into a 2-of-3 after 90 days
+# miniscript thresh(3,pk(key_1),pk(key_2),pk(key_3),older(12960))
+
+output = signed with key_1 and signed with key_2 and (signed with key_3 or older than 12960)
+
+# The BOLT #3 offered HTLC policy
+# miniscript: or(pk(key_revocation),and(pk(key_remote),or(pk(key_local),hash160(H))))
+
+output = signed with key_revocation or (signed with key_remote and (signed with key_local or hash160 H))
