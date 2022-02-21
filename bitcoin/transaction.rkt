@@ -20,8 +20,8 @@
 
 ;; Ignore sighash for now, assume sighash all
 (define (transaction-sign key tx [sighash 'all])
-  (let ([digest (transaction-digest-for-sign tx sighash)])
-    (pk-sign key digest)))
+  (let ([tx-digest (transaction-digest-for-sign tx sighash)])
+    (pk-sign key tx-digest)))
 
 ;; (module+ test
 ;; (test-case
