@@ -1,4 +1,3 @@
-
 #lang racket/base
 (require racket/match crypto crypto/libcrypto)
 (require ec)
@@ -30,3 +29,6 @@
 
 (define alice:pubkey (pk-key->public-only-key alice:privkey))
 (digest/verify alice:pubkey 'sha256 msg sig)
+
+;; skip running tests for this module
+(module test racket/base)

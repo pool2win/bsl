@@ -1,4 +1,8 @@
 
+# Development
+
+To run tests `raco test .` for now. No package support is provided yet.
+
 ## Introduction
 
 Bitcoin Scripting Language (BSL) is useful for writing bitcoin
