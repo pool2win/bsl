@@ -28,12 +28,13 @@
 ;; It all comes down to if a UTXO is spendable.
 (define (validate-signed output-script pubkey)
   (match (car output-script)
-  ['p2pkh (validate-p2pkh output-script pubkey)]))
+  ['p2pkh (validate-p2pkh output-script pubkey #"randomsignaturefornow")]))
 
 ;; Validate a p2pkh output is signed by the matching key
 (define (validate-p2pkh output-script pubkey script-sig)
   (pk-verify pubkey output-script script-sig))
 
 
-(validate-signed (utxo-output-script alice-coins) alice:pubkey)
+;; comment out use of validate-signed as it isn't ready yet.
+;; (validate-signed (utxo-output-script alice-coins) alice:pubkey)
 
