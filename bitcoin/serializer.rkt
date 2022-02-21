@@ -1,6 +1,6 @@
 #lang racket/base
 
-(provide digest-transaction-inputs)
+(provide digest-transaction-inputs transaction-digest-for-sign)
 
 (module+ test
   (require rackunit))
@@ -23,6 +23,36 @@
 (define (digest-transaction-inputs tx index [sighash 'all])
   (bytes-append* (for/list ([input (transaction-inputs tx)])
                    (digest-outpoint (input-prevout input)))))
+
+(define (hash-transaction-inputs tx index [sighash 'all])
+  (double-sha256-hash (digest-transaction-inputs tx index sighash)))
+
+(module+ test
+    (test-case
+        "bitcoin hash prevouts for transaction inputs"
+      (let* ([input1 (input '() '() 1234 (outpoint "deadbeef" 1))]
+             [input2 (input '() '() 1234 (outpoint "deadbeff" 2))]
+             )
+        (check-equal? (hash-transaction-inputs (transaction 1 1 (list input1 input2) '() '() 1) 1)
+                      (double-sha256-hash (bytes-append (hex->bytes "deadbeef")
+                                                        (integer->integer-bytes 1 4 #f #f)
+                                                        (hex->bytes "deadbeff")
+                                                        (integer->integer-bytes 2 4 #f #f)))))))
+
+;; Ignore sighash for now, assume sighash all
+;; https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+(define (transaction-digest-for-sign tx index [sighash 'all])
+  (let ([signed #t]
+        [unsigned #f]
+        [big-endian #t]
+        [little-endian #f])
+    (define (digest-transaction-version tx)
+      (integer->integer-bytes (transaction-version-number tx) 4 unsigned little-endian))
+    (bytes-append (digest-transaction-version tx)
+                  (hash-transaction-inputs tx index)
+                  (transaction-lock-time tx)
+                  (transaction-inputs tx)
+                  (transaction-outputs tx))))
 
 (module+ test
   (test-case
