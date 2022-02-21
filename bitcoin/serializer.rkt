@@ -10,6 +10,16 @@
          "../crypto-utils.rkt"
          "transaction.rkt")
 
+(define (to-little-endian-4-bytes n)
+  (let ([unsigned #f]
+        [little-endian #f])
+    (integer->integer-bytes n 4 unsigned little-endian)))
+
+(module+ test
+    (test-case
+        "to little endian 4 bytes"
+      (check-equal? (to-little-endian-4-bytes 100) (integer->integer-bytes 100 4 #f #f))))
+
 (define (digest-outpoint point)
   (let ([index-size 4]
         [signed #f]
@@ -24,35 +34,34 @@
   (bytes-append* (for/list ([input (transaction-inputs tx)])
                    (digest-outpoint (input-prevout input)))))
 
-(define (hash-transaction-inputs tx index [sighash 'all])
-  (double-sha256-hash (digest-transaction-inputs tx index sighash)))
-
 (module+ test
     (test-case
         "bitcoin hash prevouts for transaction inputs"
       (let* ([input1 (input '() '() 1234 (outpoint "deadbeef" 1))]
-             [input2 (input '() '() 1234 (outpoint "deadbeff" 2))]
-             )
-        (check-equal? (hash-transaction-inputs (transaction 1 1 (list input1 input2) '() '() 1) 1)
-                      (double-sha256-hash (bytes-append (hex->bytes "deadbeef")
-                                                        (integer->integer-bytes 1 4 #f #f)
-                                                        (hex->bytes "deadbeff")
-                                                        (integer->integer-bytes 2 4 #f #f)))))))
+             [input2 (input '() '() 5678 (outpoint "deadbeff" 2))]
+             [test-tx (transaction 1 1 (list input1 input2) '() '() 1)])
+        (check-equal? (digest-transaction-inputs test-tx 1)
+                      (bytes-append (hex->bytes "deadbeef")
+                                    (integer->integer-bytes 1 4 #f #f)
+                                    (hex->bytes "deadbeff")
+                                    (integer->integer-bytes 2 4 #f #f)))
+        (check-equal? (digest-input-sequences test-tx)
+                      (bytes-append (integer->integer-bytes 1234 4 #f #f)
+                                    (integer->integer-bytes 5678 4 #f #f))))))
+
+(define (digest-input-sequences tx)
+  (bytes-append* (for/list ([input (transaction-inputs tx)])
+                   (to-little-endian-4-bytes (input-sequence input)))))
 
 ;; Ignore sighash for now, assume sighash all
 ;; https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
 (define (transaction-digest-for-sign tx index [sighash 'all])
-  (let ([signed #t]
-        [unsigned #f]
-        [big-endian #t]
-        [little-endian #f])
-    (define (digest-transaction-version tx)
-      (integer->integer-bytes (transaction-version-number tx) 4 unsigned little-endian))
-    (bytes-append (digest-transaction-version tx)
-                  (hash-transaction-inputs tx index)
-                  (transaction-lock-time tx)
-                  (transaction-inputs tx)
-                  (transaction-outputs tx))))
+  (bytes-append (to-little-endian-4-bytes (transaction-version-number tx))
+                (double-sha256-hash (digest-transaction-inputs tx index))
+                (double-sha256-hash (digest-input-sequences tx))
+                (transaction-lock-time tx)
+                (transaction-inputs tx)
+                (transaction-outputs tx)))
 
 (module+ test
   (test-case
