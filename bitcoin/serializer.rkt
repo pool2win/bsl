@@ -27,8 +27,6 @@
     (bytes-append (hex->bytes (outpoint-transaction-hash point))
                   (integer->integer-bytes (outpoint-index point) index-size signed big-endian))))
 
-(define (hash-digest-outpoint point)
-  (double-sha256-hash (digest-outpoint point)))
 
 (define (digest-transaction-inputs tx index [sighash 'all])
   (bytes-append* (for/list ([input (transaction-inputs tx)])
@@ -59,6 +57,7 @@
   (bytes-append (to-little-endian-4-bytes (transaction-version-number tx))
                 (double-sha256-hash (digest-transaction-inputs tx index))
                 (double-sha256-hash (digest-input-sequences tx))
+                (digest-outpoint (list-ref transaction-inputs index))
                 (transaction-lock-time tx)
                 (transaction-inputs tx)
                 (transaction-outputs tx)))
@@ -69,12 +68,6 @@
     (check-equal? (digest-outpoint (outpoint "deadbeef" 1))
                   (bytes-append (hex->bytes "deadbeef")
                                 (integer->integer-bytes 1 4 #f #f))))
-    (test-case
-      "bitcoin hash outpoint"
-    (check-equal? (hash-digest-outpoint (outpoint "deadbeef" 1))
-                  (double-sha256-hash (bytes-append (hex->bytes "deadbeef")
-                                                    (integer->integer-bytes 1 4 #f #f)))))
-
     (test-case
         "digest prevouts for transaction inputs"
       (let* ([input1 (input '() '() 1234 (outpoint "deadbeef" 1))]
