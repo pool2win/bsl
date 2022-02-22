@@ -5,7 +5,7 @@
 
 (require crypto
          "../crypto-utils.rkt"
-         "serializer.rkt"
+         "sighash.rkt"
          "transaction.rkt")
 
 (provide transaction-sign)
