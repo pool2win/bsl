@@ -32,7 +32,7 @@
 
 (define (digest-sequences tx)
   (bytes-append* (for/list ([input (transaction-inputs tx)])
-                   (to-little-endian-4-bytes (input-sequence input)))))
+                   (to-little-endian-n-bytes (input-sequence input) 4))))
 
 (module+ test
     (test-case
@@ -50,7 +50,7 @@
                                     (integer->integer-bytes 5678 4 #f #f))))))
 
 (define (serialize-version-number tx)
-  (to-little-endian-4-bytes (transaction-version-number tx)))
+  (to-little-endian-n-bytes (transaction-version-number tx) 4))
 
 (define (serialize-prevouts tx index)
   (double-sha256-hash (digest-prevouts tx index)))
@@ -62,6 +62,9 @@
    ;; depends on sighash?
   (digest-outpoint (input-prevout (list-ref (transaction-inputs tx) index))))
 
+(define (serialize-amount amount)
+  (to-little-endian-n-bytes amount 8))
+
 (define (serialize-script-code tx ix)
   '())
 
@@ -72,12 +75,13 @@
 
 ;; Ignore sighash for now, assume sighash all
 ;; https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
-(define (transaction-digest-for-signing tx index [sighash sighash-all])
+(define (transaction-digest-for-signing tx index amount [sighash sighash-all])
   (bytes-append (serialize-version-number tx)
                 (serialize-prevouts tx index)
                 (serialize-sequences tx)
                 (serialize-outpoint tx index)
                 (serialize-script-code tx)
+                (serialize-amount amount)
                 (transaction-lock-time tx) ;; TODO
                 (transaction-inputs tx) ;; TODO
                 (transaction-outputs tx) ;; TODO
@@ -96,8 +100,9 @@
                                              #:outputs test-outputs
                                              #:witnesses '()
                                              #:lock-time '())])
-    (check-equal? (serialize-version-number test-transaction) (to-little-endian-4-bytes 1))
+    (check-equal? (serialize-version-number test-transaction) (to-little-endian-n-bytes 1 4))
     (check-equal? (serialize-prevouts test-transaction 0) (double-sha256-hash (digest-prevouts test-transaction 0)))
     (check-equal? (serialize-sequences test-transaction) (double-sha256-hash (digest-sequences test-transaction)))
     (check-equal? (serialize-outpoint test-transaction 0) (digest-outpoint test-prevout))
+    (check-equal? (serialize-amount 100) (to-little-endian-n-bytes 100 8))
     )))

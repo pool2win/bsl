@@ -5,10 +5,11 @@
          "sighash.rkt"
          "transaction.rkt")
 
-(provide transaction-sign)
+(provide sign-transaction-for-input)
 
-(define (transaction-sign key tx index [sighash sighash-all])
-  (let ([tx-digest (transaction-digest-for-signing tx sighash)])
+(define (sign-transaction-for-input #:key key #:transaction tx #:input-index index
+                                    #:amount amount #:sighash [sighash sighash-all])
+  (let ([tx-digest (transaction-digest-for-signing tx index amount sighash)])
     (pk-sign key tx-digest)))
 
 ;; skip running tests for this module
