@@ -1,8 +1,5 @@
 #lang racket/base
 
-(module+ test
-  (require rackunit))
-
 (require crypto
          "../crypto-utils.rkt"
          "sighash.rkt"
@@ -10,7 +7,9 @@
 
 (provide transaction-sign)
 
-;; Ignore sighash for now, assume sighash all
-(define (transaction-sign key tx index [sighash 'all])
-  (let ([tx-digest (transaction-digest-for-sign tx sighash)])
+(define (transaction-sign key tx index [sighash sighash-all])
+  (let ([tx-digest (transaction-digest-for-signing tx sighash)])
     (pk-sign key tx-digest)))
+
+;; skip running tests for this module
+(module test racket/base)
