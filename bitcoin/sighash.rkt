@@ -74,7 +74,7 @@
 (define (serialize-sighash-type sighash)
   (to-little-endian-n-bytes sighash 4))
 
-;; TODO - use codeseparator to 
+;; TODO - use codeseparator to split script that needs to be serialized
 (define (serialize-script-code tx index sighash)
   '())
 
