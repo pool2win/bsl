@@ -1,5 +1,8 @@
 #lang racket/base
 
+(module+ test
+  (require rackunit))
+
 (provide (struct-out outpoint)
          (struct-out input)
          (struct-out output)
@@ -22,12 +25,8 @@
   (output script value))
 
 (struct transaction (version-number flag inputs outputs witnesses lock-time) #:transparent)
+
 ;; make-transaction defined to take keyword args and call the constructor
 (define (make-transaction #:version-number version-number #:flag flag #:inputs inputs #:outputs outputs
                           #:witnesses witnesses #:lock-time lock-time)
   (transaction version-number flag inputs outputs witnesses lock-time))
-
-
-
-;; skip running tests for this module
-(module test racket/base)

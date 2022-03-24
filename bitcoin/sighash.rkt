@@ -101,9 +101,9 @@
 (test-case
     "transaction serialization for signing"
   (let* ([test-prevout (outpoint "deadbeef" 0)]
-         [test-inputs (list (make-input #:script '("script" "elements") #:witness '()
+         [test-inputs (list (make-input #:script '(script elements) #:witness '()
                                         #:sequence 1 #:prevout test-prevout))]
-         [test-outputs (list (output '("script" "elements") 100))]
+         [test-outputs (list (output '(script elements) 100))]
          [test-transaction (make-transaction #:version-number 1
                                              #:flag 0
                                              #:inputs test-inputs
