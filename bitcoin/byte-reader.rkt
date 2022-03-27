@@ -12,7 +12,6 @@
   ;; returns values as (first n bytes, rest of the stream)
   (values (list->bytes (stream->list (stream-take bytes-stream n))) (stream-tail bytes-stream n)))
 
-
 (module+ test
   (test-case
       "read next n bytes and rest"
@@ -20,5 +19,5 @@
                   [(tx-bytes) (hex-string->bytes tx-data)]
                   [(tx-data-stream) (sequence->stream (in-bytes tx-bytes))]
                   [(bytes-read rest) (next-n-bytes-and-rest tx-data-stream 4)])
-      (check-equal? bytes-read (hex-string->bytes "907c2bc5")
-      (check-equal? (stream-length rest) 180)))))
+      (check-equal? bytes-read (hex-string->bytes "907c2bc5"))
+      (check-equal? (stream-length rest) 180))))
