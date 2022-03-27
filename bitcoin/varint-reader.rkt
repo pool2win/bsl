@@ -1,4 +1,4 @@
-#lang errortrace racket/base
+#lang racket/base
 
 (require file/sha1
          racket/stream
