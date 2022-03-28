@@ -11,6 +11,7 @@
 
 (module+ test
   (require rackunit))
+
 (define (parse-version tx-data-stream)
   (let-values ([(version-bytes rest) (next-n-bytes-and-rest tx-data-stream 4)])
     (values (read-little-endian-bytes version-bytes) rest)))
@@ -39,7 +40,7 @@
   (let*-values ([(point rest) (parse-point tx-data-stream)]
                 [(script rest) (parse-script rest)]
                 [(sequence rest) (parse-sequence rest)])
-    (values (make-input #:script '() #:witness '() #:sequence sequence #:point point) rest)))
+    (values (make-input #:script script #:witness '() #:sequence sequence #:point point) rest)))
 
 (define (parse-inputs num-inputs inputs tx-data-stream)
   (cond
