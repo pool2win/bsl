@@ -72,14 +72,15 @@
   (let*-values ([(opcode) (get-opcode code env)]
                 [(push-to-stack?) (opcode-push-to-stack opcode)]
                 [(pop-from-stack) (opcode-pop-from-stack opcode)]
-                [(args) (take (environment-stack env) pop-from-stack)]
+                [(args left-on-stack) (split-at (environment-stack env) pop-from-stack)]
                 [(num-read-ahead-from-script) (opcode-read-ahead-from-script opcode)]
                 [(args-read-ahead script) (split-at script num-read-ahead-from-script)]
                 [(args) (append args-read-ahead args)]
                 [(result) (apply (get-opcode-proc code env) args)])
     (cond
       [push-to-stack?
-       (set-environment-stack! env (cons result (environment-stack env)))])
+       (set-environment-stack! env (cons result left-on-stack))]
+      [else (set-environment-stack! env left-on-stack)])
     env))
 
 (define (get-opcode-args opcode script env)
@@ -111,6 +112,13 @@
       (add-opcode #xab (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
                                     #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 1) env)
       (check-equal? (environment-stack (apply-opcode #xab '(1) env)) '())))
+  (test-case
+      "opcode with pop from stack"
+    (let ([env (make-initial-env)])
+      (set-environment-stack! env '(100))
+      (add-opcode #xab (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
+                                    #:push-to-stack #t #:pop-from-stack 1 #:read-ahead-from-script 0) env)
+      (check-equal? (environment-stack (apply-opcode #xab '() env)) '(101))))
   (test-case
       "Get opcode args from script"
     (let ([env (make-initial-env)])
