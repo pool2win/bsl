@@ -94,7 +94,6 @@
       (check-equal? (environment-stack env) '())))
   (test-case
       "Add opcode, check and apply it"
-    ;; (struct opcode (proc num-arguments push-to-stack pop-from-stack read-ahead-from-script))
     (let ([env (make-initial-env)])
       (add-opcode #xab (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
                                     #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1) env)
@@ -107,6 +106,12 @@
       (check-equal? (get-opcode-num-args #x65 env) 2)
       (check-equal? (environment-stack (apply-opcode #x65 '(1 2) env)) '(3 2))))
   (test-case
+      "opcode without push to stack"
+    (let ([env (make-initial-env)])
+      (add-opcode #xab (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
+                                    #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 1) env)
+      (check-equal? (environment-stack (apply-opcode #xab '(1) env)) '())))
+  (test-case
       "Get opcode args from script"
     (let ([env (make-initial-env)])
       (add-opcode #x65 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
@@ -114,7 +119,7 @@
       (let-values ([(args rest) (get-opcode-args #x65 '(1 2 3 4) env)])
         (check-equal?  args '(1 2))
         (check-equal? rest '(3 4))))))
-        
+
 ;; (define (eval-script script env)
 ;;   (cond
 ;;     [(is-opcode? (first script) env)
