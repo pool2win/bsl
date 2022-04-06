@@ -4,6 +4,8 @@
          "opcodes.rkt"
          "environment.rkt")
 
+(provide apply-opcode)
+
 (module+ test
   (require rackunit))
 
