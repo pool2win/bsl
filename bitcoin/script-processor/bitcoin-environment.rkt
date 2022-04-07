@@ -33,6 +33,19 @@
                  #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
                  #:proc (lambda (code num-bytes bytes-to-push)
                           bytes-to-push)) env)
+    (add-opcode #x4f
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
+                 #:proc (lambda (code) -1)) env)
+    (add-opcode #x51
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
+                 #:proc (lambda (code) 1)) env)
+    (for ([code (in-inclusive-range #x52 #x60)])
+      (add-opcode code
+                  (make-opcode
+                   #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
+                   #:proc (lambda (code) (- code 80))) env))
     env
   ))
 
