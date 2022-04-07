@@ -18,6 +18,21 @@
                    #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2
                    #:proc (lambda (num-bytes bytes-to-push)
                             bytes-to-push)) env))
+    (add-opcode #x4c
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
+                 #:proc (lambda (code num-bytes bytes-to-push)
+                          bytes-to-push)) env)
+    (add-opcode #x4d
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
+                 #:proc (lambda (code num-bytes bytes-to-push)
+                          bytes-to-push)) env)
+    (add-opcode #x4e
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
+                 #:proc (lambda (code num-bytes bytes-to-push)
+                          bytes-to-push)) env)
     env
   ))
 
