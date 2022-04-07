@@ -46,6 +46,10 @@
                   (make-opcode
                    #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
                    #:proc (lambda (code) (- code 80))) env))
+    (add-opcode #x61
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 1
+                 #:proc (lambda (code) '())) env)
     env
   ))
 
