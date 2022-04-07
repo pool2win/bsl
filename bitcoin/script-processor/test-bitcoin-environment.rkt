@@ -31,4 +31,6 @@
     (let ([bitcoin-env (make-bitcoin-environment)])
       (check-equal? (environment-stack (apply-opcode #x52 '(#x52) bitcoin-env)) '(2)))
     (let ([bitcoin-env (make-bitcoin-environment)])
-      (check-equal? (environment-stack (apply-opcode #x60 '(#x60) bitcoin-env)) '(16))))
+      (check-equal? (environment-stack (apply-opcode #x60 '(#x60) bitcoin-env)) '(16)))
+    (let ([bitcoin-env (make-bitcoin-environment)])
+      (check-equal? (environment-stack (apply-opcode #x61 '(#x61) bitcoin-env)) '())))
