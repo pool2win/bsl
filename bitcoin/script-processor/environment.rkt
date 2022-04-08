@@ -9,11 +9,8 @@
 (module+ test
   (require rackunit))
 
-;; Provide an env (as a stack)
-;; Does env have the opcode-procs hash as well?
-
 ;; An env with a hash of opcodes indexed by key and the stack for script computation
-(struct environment (opcodes stack) #:mutable)
+(struct environment (opcodes stack altstack) #:mutable)
 
 (define (add-opcode opcode proc env)
   (hash-set! (environment-opcodes env) opcode proc))
@@ -36,7 +33,7 @@
     (split-at script num-arguments)))
 
 (define (make-initial-env)
-  (let ([env (environment (make-hash) '())])
+  (let ([env (environment (make-hash) '() '())])
     env))
 
 (module+ test
