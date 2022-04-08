@@ -1,4 +1,4 @@
-#lang errortrace racket/base
+#lang racket/base
 
 (require racket/list
          "opcodes.rkt"
@@ -76,18 +76,29 @@
       (add-opcode #xab (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
                                     #:push-to-stack #t #:pop-from-stack 1 #:read-ahead-from-script 0) env)
       (check-equal? (environment-stack (apply-opcode #xab '() env)) '(101)))))
-;; (define (eval-script script env)
-;;   (cond
-;;     [(is-opcode? (first script) env)
-;;      (let-values ([(args rest) (get-opcode-args (first script) (rest script) env)])
-;;        (values (apply-opcode (first script) args env) rest))]))
 
 
-;; (module+ test
-;;   (test-case
-;;       "Evaluate a dummy script"
-;;     (let*-values ([(env) (make-initial-env)]
-;;                   [(unused) (add-opcode #x65 (opcode (lambda (x y) (+ x y)) 2) env)]
-;;                   [(result rest) (eval-script '(#x65 1 2 3 4) env)])
-;;       (check-equal? result 3)
-;;       (check-equal? rest '(3 4)))))
+;; Excute a script in the context of a bitcoin-environment
+;; Script is a script in list format, e.g. '(op_dup op_hash160 #"deadbeef" op_equalverify)
+(define (eval-script script env)
+  (cond
+    [(empty? script) '()]
+    [(not (is-opcode? (first script) env))
+     (error "Bad script ~a" script)]
+    [else
+     (let-values ([(args rest-of-script) (get-opcode-args (first script) (rest script) env)])
+       (apply-opcode (first script) args env)
+       (eval-script rest-of-script env))]))
+       
+
+
+(module+ test
+  (test-case
+      "Evaluate script"
+    (let*-values ([(env) (make-initial-env)])
+      (add-opcode #x65 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
+                                    #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
+      (eval-script '(#x65 1 2) env)
+      (check-equal?  (environment-stack env) '(3))
+      (eval-script '(#x65 10 20 #x65 100 200) env)
+      (check-equal?  (environment-stack env) '(300 30 3)))))

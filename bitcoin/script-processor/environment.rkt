@@ -30,6 +30,7 @@
 (define (is-opcode? value env)
   (hash-has-key? (environment-opcodes env) value))
 
+;; returns '(<args> <rest-of-script>)
 (define (get-opcode-args opcode script env)
   (let ([num-arguments (get-opcode-num-args opcode env)])
     (split-at script num-arguments)))
