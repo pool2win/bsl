@@ -1,6 +1,8 @@
 #lang errortrace racket/base
 
-(require "opcodes.rkt"
+(require racket/string
+         racket/format
+         "opcodes.rkt"
          "environment.rkt")
 
 (provide make-bitcoin-environment)
@@ -10,45 +12,66 @@
 
 (define (make-bitcoin-environment)
   (let ([env (make-initial-env)])
-    (add-opcode #x00 (make-opcode #:proc (lambda () #"") #:num-arguments 0
-                                  #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 0) env)
+    (add-opcode '(op_0 op_false) #x00
+                (make-opcode #:proc (lambda () #"") #:num-arguments 0
+                             #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 0) env)
     (for ([code (in-inclusive-range 1 75)])
-      (add-opcode code
+      (add-opcode '() code ;; N/A
                   (make-opcode
                    #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2
                    #:proc (lambda (num-bytes bytes-to-push)
                             bytes-to-push)) env))
-    (add-opcode #x4c
+    (add-opcode '(op_pushdata1) #x4c
                 (make-opcode
                  #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
                  #:proc (lambda (code num-bytes bytes-to-push)
                           bytes-to-push)) env)
-    (add-opcode #x4d
+    (add-opcode '(op_pushdata2) #x4d
                 (make-opcode
                  #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
                  #:proc (lambda (code num-bytes bytes-to-push)
                           bytes-to-push)) env)
-    (add-opcode #x4e
+    (add-opcode '(op_pushdata4) #x4e
                 (make-opcode
                  #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 3
                  #:proc (lambda (code num-bytes bytes-to-push)
                           bytes-to-push)) env)
-    (add-opcode #x4f
+    (add-opcode '(op_1negate) #x4f
                 (make-opcode
                  #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
                  #:proc (lambda (code) -1)) env)
-    (add-opcode #x51
+    (add-opcode '(op_1 op_true) #x51
                 (make-opcode
                  #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
                  #:proc (lambda (code) 1)) env)
     (for ([code (in-inclusive-range #x52 #x60)])
-      (add-opcode code
+      (add-opcode (string-join `("op_",(~a (- code 80))) "") code
                   (make-opcode
                    #:num-arguments 0 #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1
                    #:proc (lambda (code) (- code 80))) env))
-    (add-opcode #x61
+    (add-opcode '(op_nop) #x61
                 (make-opcode
                  #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 1
+                 #:proc (lambda (code) '())) env)
+    (add-opcode '(op_if) #x63
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
+                 #:is_conditional #t
+                 #:proc (lambda (code) '())) env)
+    (add-opcode '(op_notif) #x64
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
+                 #:is_conditional #t
+                 #:proc (lambda (code) '())) env)
+    (add-opcode '(op_else) #x67
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
+                 #:is_conditional #t
+                 #:proc (lambda (code) '())) env)
+    (add-opcode '(op_endif) #x68
+                (make-opcode
+                 #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
+                 #:is_conditional #t
                  #:proc (lambda (code) '())) env)
     env
   ))
