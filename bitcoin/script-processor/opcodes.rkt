@@ -8,8 +8,9 @@
 ;; push-to-stack is a boolean to specify if result should be pushed to stack
 ;; pop-from-stack is a number specifying how many args to pop from stack
 ;; read-ahead-from-script is the number of elements to read from script following the current opcode
-(struct opcode (proc num-arguments push-to-stack pop-from-stack read-ahead-from-script))
+(struct opcode (proc num-arguments push-to-stack pop-from-stack read-ahead-from-script is_conditional))
 (define (make-opcode #:proc proc #:num-arguments num-arguments #:push-to-stack push-to-stack
-                     #:pop-from-stack pop-from-stack #:read-ahead-from-script read-ahead-from-script)
-  (opcode proc num-arguments push-to-stack pop-from-stack read-ahead-from-script))
+                     #:pop-from-stack pop-from-stack #:read-ahead-from-script read-ahead-from-script
+                     #:is_conditional [is_conditional #f])
+  (opcode proc num-arguments push-to-stack pop-from-stack read-ahead-from-script is_conditional))
 

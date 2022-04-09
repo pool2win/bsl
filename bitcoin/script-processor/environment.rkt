@@ -12,8 +12,10 @@
 ;; An env with a hash of opcodes indexed by key and the stack for script computation
 (struct environment (opcodes stack altstack) #:mutable)
 
-(define (add-opcode opcode proc env)
-  (hash-set! (environment-opcodes env) opcode proc))
+(define (add-opcode opcodes opcode-hex proc env)
+  (hash-set! (environment-opcodes env) opcode-hex proc)
+  (for ([code opcodes])
+    (hash-set! (environment-opcodes env) code proc)))
 
 (define (get-opcode opcode env)
   (hash-ref (environment-opcodes env) opcode))
@@ -45,27 +47,33 @@
   (test-case
       "Add opcode, check and apply it"
     (let ([env (make-initial-env)])
-      (add-opcode #xab (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
-                                    #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1) env)
-      (add-opcode #x65 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
-                                    #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
-      (check-true (is-opcode? #xab env))
-      (check-equal? (get-opcode-num-args #xab env) 1)
-      (check-true (is-opcode? #x65 env))
-      (check-equal? (get-opcode-num-args #x65 env) 2)))
+      (add-opcode '(op_1add) #x8b (make-opcode #:proc (lambda (x) (add1 x)) #:num-arguments 1
+                                               #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 1) env)
+      (add-opcode '(op_add) #x93 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
+                                              #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
+      (check-true (is-opcode? #x8b env))
+      (check-equal? (get-opcode-num-args #x8b env) 1)
+      (check-true (is-opcode? #x93 env))
+      (check-equal? (get-opcode-num-args #x93 env) 2)))
   (test-case
       "Get opcode args from script"
     (let ([env (make-initial-env)])
-      (add-opcode #x65 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
-                                    #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
-      (let-values ([(args rest) (get-opcode-args #x65 '(1 2 3 4) env)])
+      (add-opcode '(op_add) #x93 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
+                                              #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
+      (let-values ([(args rest) (get-opcode-args #x93 '(1 2 3 4) env)])
+        (check-equal?  args '(1 2))
+        (check-equal? rest '(3 4)))
+      (let-values ([(args rest) (get-opcode-args 'op_add '(1 2 3 4) env)])
         (check-equal?  args '(1 2))
         (check-equal? rest '(3 4)))))
   (test-case
-      "Get opcode args from script"
+      "Get opcode args from script using op code hex"
     (let ([env (make-initial-env)])
-      (add-opcode #x65 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
-                                    #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
-      (let-values ([(args rest) (get-opcode-args #x65 '(1 2 3 4) env)])
+      (add-opcode '(op_add) #x93 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
+                                              #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
+      (let-values ([(args rest) (get-opcode-args #x93 '(1 2 3 4) env)])
+        (check-equal?  args '(1 2))
+        (check-equal? rest '(3 4)))
+      (let-values ([(args rest) (get-opcode-args 'op_add '(1 2 3 4) env)])
         (check-equal?  args '(1 2))
         (check-equal? rest '(3 4))))))
