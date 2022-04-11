@@ -68,4 +68,7 @@
       (let*-values ([(script stack) (apply-opcode 'op_notif '((2 #"AA" 3 #"AAA") op_else (2 #"BB" 3 #"BBB") op_endif) bitcoin-env '(1 blah))])
         (check-equal? script '())
         (check-equal? stack '(#"BBB" #"BB" blah)))
+      (let*-values ([(script stack) (apply-opcode 'op_if '((op_if (2 #"ZZ") op_endif) op_else (2 #"BB" 3 #"BBB") op_endif) bitcoin-env '(1 1 blah))])
+        (check-equal? script '())
+        (check-equal? stack '(#"ZZ" blah)))
       )))
