@@ -3,7 +3,7 @@
 (require racket/list
          "environment.rkt")
 
-(provide apply-opcode)
+(provide apply-opcode eval-script)
 
 (module+ test
   (require rackunit))
@@ -30,7 +30,7 @@
 ;; 1.1 If not, then call eval on the procedure with the arguments (I don't think this should happen in Script)
 
 (define (apply-opcode code script env stack)
-  (apply (get-opcode code env) (list script stack)))
+ (apply (get-opcode code env) (list script stack)))
 
 
 (module+ test
@@ -45,14 +45,14 @@
       (add-opcode env '(op_1add) #x8b (lambda (script stack)
                                         (let*-values ([(args rest-of-script) (split-at script 1)]
                                                       [(stack) (cons (apply add1 args) stack)])
-                                          (values rest-of-script env stack))))
+                                          (values rest-of-script stack))))
       (add-opcode env '(op_add) #x93 (lambda (script stack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
-                                         (values rest-of-script env stack))))
-      (let-values ([(script env stack) (apply-opcode 'op_1add '(1) env '())])
+                                         (values rest-of-script stack))))
+      (let-values ([(script stack) (apply-opcode 'op_1add '(1) env '())])
         (check-equal? stack '(2)))
-      (let-values ([(script env stack) (apply-opcode 'op_add '(1 2) env '(2))])
+      (let-values ([(script stack) (apply-opcode 'op_add '(1 2) env '(2))])
         (check-equal? stack '(3 2))))))
 
 
@@ -64,10 +64,9 @@
     [(not (is-opcode? (first script) env))
      (error "Bad script ~a" script)]
     [else
-     (let-values ([(script env stack) (apply-opcode (first script) (rest script) env stack)])
+     (let-values ([(script stack) (apply-opcode (first script) (rest script) env stack)])
        (eval-script script env stack))]))
        
-
 
 (module+ test
   (test-case
@@ -76,12 +75,20 @@
       (add-opcode env '(op_add) #x93 (lambda (script stack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
-                                         (values rest-of-script env stack))))
+                                         (values rest-of-script stack))))
+      (add-opcode env '(op_2) #x02
+                  (lambda (script stack)
+                    (values (list-tail script 1) (cons (first script) stack))))
+      (add-opcode env '(op_3) #x03
+                  (lambda (script stack)
+                    (values (list-tail script 1) (cons (first script) stack))))
       (let-values ([(script env stack) (eval-script '(op_add 1 2) env '())])
         (check-equal? script '())
         (check-equal?  stack '(3)))
       (let-values ([(script env stack) (eval-script '(op_add 10 20 op_add 100 200) env '())])
-        (check-equal?  stack '(300 30))))))
+        (check-equal?  stack '(300 30)))
+      (let-values ([(script env stack) (eval-script '(op_2 #"AA" op_3 #"AAA") env '())])
+        (check-equal?  stack '(#"AAA" #"AA"))))))
     ;; (test-case
     ;;     "Evaluate script with single conditional branch"
     ;;   (let*-values ([(env) (make-initial-env)])
