@@ -9,7 +9,7 @@
   (require rackunit))
 
 ;; An env with a hash of opcodes indexed by key and the stack for script computation
-(struct environment (opcodes stack altstack) #:mutable)
+(struct environment (opcodes) #:mutable)
 
 (define (add-opcode env opcodes opcode-hex proc)
   (hash-set! (environment-opcodes env) opcode-hex proc)
@@ -23,15 +23,14 @@
   (hash-has-key? (environment-opcodes env) value))
 
 (define (make-initial-env)
-  (let ([env (environment (make-hash) '() '())])
+  (let ([env (environment (make-hash))])
     env))
 
 (module+ test
   (test-case
       "Setup initial environment"
     (let ([env (make-initial-env)])
-      (check-equal? (hash-keys (environment-opcodes env)) '())
-      (check-equal? (environment-stack env) '())))
+      (check-equal? (hash-keys (environment-opcodes env)) '())))
   (test-case
       "Add opcode, check and apply it"
     (let ([env (make-initial-env)])
