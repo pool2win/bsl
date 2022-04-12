@@ -45,14 +45,14 @@
       (add-opcode env '(op_1add) #x8b (lambda (script stack)
                                         (let*-values ([(args rest-of-script) (split-at script 1)]
                                                       [(stack) (cons (apply add1 args) stack)])
-                                          (values rest-of-script stack))))
+                                          (values rest-of-script stack #t))))
       (add-opcode env '(op_add) #x93 (lambda (script stack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
-                                         (values rest-of-script stack))))
-      (let-values ([(script stack) (apply-opcode 'op_1add '(1) env '())])
+                                         (values rest-of-script stack #t))))
+      (let-values ([(script stack verified) (apply-opcode 'op_1add '(1) env '())])
         (check-equal? stack '(2)))
-      (let-values ([(script stack) (apply-opcode 'op_add '(1 2) env '(2))])
+      (let-values ([(script stack verified) (apply-opcode 'op_add '(1 2) env '(2))])
         (check-equal? stack '(3 2))))))
 
 
@@ -64,7 +64,7 @@
     [(not (is-opcode? (first script) env))
      (error "Bad script ~a" script)]
     [else
-     (let-values ([(script stack) (apply-opcode (first script) (rest script) env stack)])
+     (let-values ([(script stack verified) (apply-opcode (first script) (rest script) env stack)])
        (eval-script script env stack))]))
        
 
@@ -75,13 +75,13 @@
       (add-opcode env '(op_add) #x93 (lambda (script stack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
-                                         (values rest-of-script stack))))
+                                         (values rest-of-script stack #t))))
       (add-opcode env '(op_2) #x02
                   (lambda (script stack)
-                    (values (list-tail script 1) (cons (first script) stack))))
+                    (values (list-tail script 1) (cons (first script) stack) #t)))
       (add-opcode env '(op_3) #x03
                   (lambda (script stack)
-                    (values (list-tail script 1) (cons (first script) stack))))
+                    (values (list-tail script 1) (cons (first script) stack) #t)))
       (let-values ([(script env stack) (eval-script '(op_add 1 2) env '())])
         (check-equal? script '())
         (check-equal?  stack '(3)))
