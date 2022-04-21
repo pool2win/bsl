@@ -16,18 +16,18 @@
   (match script
     [(list ifexp endifexp)
      #:when (and (eq? endifexp 'op_endif) (eq? (first stack) condition))
-     (let-values ([(rest-script new-env new-stack) (eval-script ifexp env (rest stack) altstack)])
+     (let-values ([(rest-script new-env new-stack altstack) (eval-script ifexp env (rest stack) altstack)])
        (values (list-tail script 2) new-stack altstack #t))]
     [(list ifexp endifexp)
      #:when (and (eq? endifexp 'op_endif) (not (eq? (first stack) condition)))
        (values (list-tail script 2) (rest stack) altstack #t)]
     [(list ifexp elseexp elseifexp endifexp)
      #:when (and (eq? elseexp 'op_else) (eq? endifexp 'op_endif) (eq? (first stack) condition))
-     (let-values ([(rest-script new-env stack) (eval-script ifexp env (rest stack) altstack)])
+     (let-values ([(rest-script new-env stack altstack) (eval-script ifexp env (rest stack) altstack)])
        (values (list-tail script 4) stack altstack #t))]
     [(list ifexp elseexp elseifexp endifexp)
      #:when (and (eq? elseexp 'op_else) (eq? endifexp 'op_endif) (not (eq? (first stack) condition)))
-     (let-values ([(rest-script new-env stack) (eval-script elseifexp env (rest stack) altstack)])
+     (let-values ([(rest-script new-env stack altstack) (eval-script elseifexp env (rest stack) altstack)])
        (values (list-tail script 4) stack altstack #t))]))
 
 (define (make-bitcoin-environment)

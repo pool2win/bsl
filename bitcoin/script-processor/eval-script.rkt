@@ -30,7 +30,8 @@
 ;; 1.1 If not, then call eval on the procedure with the arguments (I don't think this should happen in Script)
 
 (define (apply-opcode code script env stack altstack)
- (apply (get-opcode code env) (list script stack altstack)))
+  (let-values ([(script stack altstack verified) (apply (get-opcode code env) (list script stack altstack))])
+    (values script stack altstack verified)))
 
 
 (module+ test
@@ -44,14 +45,14 @@
       (add-opcode env '(op_1add) #x8b (lambda (script stack altstack)
                                         (let*-values ([(args rest-of-script) (split-at script 1)]
                                                       [(stack) (cons (apply add1 args) stack)])
-                                          (values rest-of-script stack #t))))
+                                          (values rest-of-script stack altstack #t))))
       (add-opcode env '(op_add) #x93 (lambda (script stack altstack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
-                                         (values rest-of-script stack #t))))
-      (let-values ([(script stack verified) (apply-opcode 'op_1add '(1) env '() '())])
+                                         (values rest-of-script stack altstack #t))))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_1add '(1) env '() '())])
         (check-equal? stack '(2)))
-      (let-values ([(script stack verified) (apply-opcode 'op_add '(1 2) env '(2) '())])
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_add '(1 2) env '(2) '())])
         (check-equal? stack '(3 2))))))
 
 
@@ -59,7 +60,7 @@
 ;; Script is a script in list format, e.g. '(op_dup op_hash160 #"deadbeef" op_equalverify)
 (define (eval-script script env stack altstack)
   (cond
-    [(empty? script) (values script env stack)]
+    [(empty? script) (values script env stack altstack)]
     [(not (is-opcode? (first script) env))
      (error "Bad script ~a" script)]
     [else
@@ -81,39 +82,10 @@
       (add-opcode env '(op_3) #x03
                   (lambda (script stack altstack)
                     (values (list-tail script 1) (cons (first script) stack) '() #t)))
-      (let-values ([(script env stack) (eval-script '(op_add 1 2) env '() '())])
+      (let-values ([(script env stack altstack) (eval-script '(op_add 1 2) env '() '())])
         (check-equal? script '())
         (check-equal?  stack '(3)))
-      (let-values ([(script env stack) (eval-script '(op_add 10 20 op_add 100 200) env '() '())])
+      (let-values ([(script env stack altstack) (eval-script '(op_add 10 20 op_add 100 200) env '() '())])
         (check-equal?  stack '(300 30)))
-      (let-values ([(script env stack) (eval-script '(op_2 #"AA" op_3 #"AAA") env '() '())])
+      (let-values ([(script env stack altstack) (eval-script '(op_2 #"AA" op_3 #"AAA") env '() '())])
         (check-equal?  stack '(#"AAA" #"AA"))))))
-    ;; (test-case
-    ;;     "Evaluate script with single conditional branch"
-    ;;   (let*-values ([(env) (make-initial-env)])
-    ;;     (add-opcode '(op_add) #x93 (make-opcode #:proc (lambda (x y) (+ x y)) #:num-arguments 2
-    ;;                                             #:push-to-stack #t #:pop-from-stack 0 #:read-ahead-from-script 2) env)
-    ;;     (add-opcode '(op_if) #x63
-    ;;                 (make-opcode
-    ;;                  #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
-    ;;                  #:is_conditional #t
-    ;;                  #:proc (lambda (code) '())) env)
-    ;;     (add-opcode '(op_notif) #x64
-    ;;                 (make-opcode
-    ;;                  #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
-    ;;                  #:is_conditional #t
-    ;;                  #:proc (lambda (code) '())) env)
-    ;;     (add-opcode '(op_else) #x67
-    ;;             (make-opcode
-    ;;              #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
-    ;;              #:is_conditional #t
-    ;;              #:proc (lambda (code) '())) env)
-    ;;     (add-opcode '(op_endif) #x68
-    ;;                 (make-opcode
-    ;;                  #:num-arguments 0 #:push-to-stack #f #:pop-from-stack 0 #:read-ahead-from-script 0
-    ;;                  #:is_conditional #t
-    ;;                  #:proc (lambda (code) '())) env)
-    ;;     (eval-script '(op_true op_if op_add '(1 2) op_endif) env)
-    ;;     (check-equal?  (environment-stack env) '(3))
-    ;;     (eval-script '(op_false op_if '(op_add 1 2) op_else '(#x93 100 200) op_endif) env)
-    ;;     (check-equal?  (environment-stack env) '(3)))))
