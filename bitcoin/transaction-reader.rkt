@@ -1,7 +1,6 @@
 #lang errortrace racket/base
 
 (require file/sha1
-         racket/stream
          "transaction.rkt"
          "endian-helper.rkt"
          "varint-reader.rkt")
@@ -40,15 +39,15 @@
     [else (let ([input (parse-input tx-port)])
             (parse-inputs (sub1 num-inputs) (append inputs (list input)) tx-port))]))
 
-(define (parse-outputs tx-data-stream)
-  (values '() tx-data-stream))
+;; TODO - implement
+(define (parse-outputs tx-port)
+  '())
 
-(define (parse-locktime tx-data-stream)
-  (values '() tx-data-stream))
+;; TODO - implement
+(define (parse-locktime tx-port)
+  '())
 
 (define (decode-transaction tx-data)
-  ;; TODO: Use tx-data as a stream, so there is no need to track the 'byte locations' as we process the data
-  ;; Explore using stream-take and for/stream etc functions
   (let* ([tx-port (open-input-bytes tx-data)]
          [version-number (parse-version tx-port)]
          [num-inputs (read-varint-value tx-port)]

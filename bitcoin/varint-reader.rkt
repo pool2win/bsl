@@ -1,7 +1,6 @@
 #lang errortrace racket/base
 
 (require file/sha1
-         racket/stream
          "endian-helper.rkt")
 
 (provide read-varint-value)

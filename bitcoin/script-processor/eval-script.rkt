@@ -14,13 +14,13 @@
 
 
 ;; eval will convert a list of bytes into a series of opcode-procs
-;; eval will have to consume data off the stream based on opcode.
+;; eval will have to consume data from an in-port based on opcode.
 ;; For example, op_pushdata1 consumes 1 + 1 bytes
 
 
 ;; What does eval do?
 ;; 1. Identify a byte as an opcode
-;; 2. Consumes operands from stream if opcode specifies anyone
+;; 2. Consumes operands from in-port if opcode specifies anyone
 ;; 3. Calls apply for the procedure that opcode directs to
 ;; 4. Apply updates the env with the result
 
