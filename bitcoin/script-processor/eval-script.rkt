@@ -29,65 +29,64 @@
 ;; 1.1 If primitive: execute it
 ;; 1.1 If not, then call eval on the procedure with the arguments (I don't think this should happen in Script)
 
-(define (apply-opcode code script env stack)
- (apply (get-opcode code env) (list script stack)))
+(define (apply-opcode code script env stack altstack)
+ (apply (get-opcode code env) (list script stack altstack)))
 
 
 (module+ test
   (test-case
       "Setup initial environment"
     (let ([env (make-initial-env)])
-      (check-equal? (hash-keys (environment-opcodes env)) '())
-      (check-equal? (environment-stack env) '())))
+      (check-equal? (hash-keys (environment-opcodes env)) '())))
   (test-case
       "Add opcode, check and apply it"
     (let ([env (make-initial-env)])
-      (add-opcode env '(op_1add) #x8b (lambda (script stack)
+      (add-opcode env '(op_1add) #x8b (lambda (script stack altstack)
                                         (let*-values ([(args rest-of-script) (split-at script 1)]
                                                       [(stack) (cons (apply add1 args) stack)])
                                           (values rest-of-script stack #t))))
-      (add-opcode env '(op_add) #x93 (lambda (script stack)
+      (add-opcode env '(op_add) #x93 (lambda (script stack altstack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
                                          (values rest-of-script stack #t))))
-      (let-values ([(script stack verified) (apply-opcode 'op_1add '(1) env '())])
+      (let-values ([(script stack verified) (apply-opcode 'op_1add '(1) env '() '())])
         (check-equal? stack '(2)))
-      (let-values ([(script stack verified) (apply-opcode 'op_add '(1 2) env '(2))])
+      (let-values ([(script stack verified) (apply-opcode 'op_add '(1 2) env '(2) '())])
         (check-equal? stack '(3 2))))))
 
 
 ;; Excute a script in the context of a bitcoin-environment
 ;; Script is a script in list format, e.g. '(op_dup op_hash160 #"deadbeef" op_equalverify)
-(define (eval-script script env stack)
+(define (eval-script script env stack altstack)
   (cond
     [(empty? script) (values script env stack)]
     [(not (is-opcode? (first script) env))
      (error "Bad script ~a" script)]
     [else
-     (let-values ([(script stack verified) (apply-opcode (first script) (rest script) env stack)])
-       (eval-script script env stack))]))
+     (let-values ([(script stack altstack verified) (apply-opcode (first script) (rest script) env stack altstack)])
+       (eval-script script env stack altstack))]))
        
 
 (module+ test
   (test-case
       "Evaluate simple script"
     (let*-values ([(env) (make-initial-env)])
-      (add-opcode env '(op_add) #x93 (lambda (script stack)
+      (add-opcode env '(op_add) #x93 (lambda (script stack altstack)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
-                                         (values rest-of-script stack #t))))
+                                         (values rest-of-script stack '() #t))))
       (add-opcode env '(op_2) #x02
-                  (lambda (script stack)
-                    (values (list-tail script 1) (cons (first script) stack) #t)))
+                  (lambda (script stack altstack)
+                    (values (list-tail script 1) (cons (first script) stack) '() #t)))
       (add-opcode env '(op_3) #x03
-                  (lambda (script stack)
-                    (values (list-tail script 1) (cons (first script) stack) #t)))
-      (let-values ([(script env stack) (eval-script '(op_add 1 2) env '())])
+                  (lambda (script stack altstack)
+                    (values (list-tail script 1) (cons (first script) stack) '() #t)))
+      (let-values ([(script env stack) (eval-script '(op_add 1 2) env '() '())])
         (check-equal? script '())
         (check-equal?  stack '(3)))
-      (let-values ([(script env stack) (eval-script '(op_add 10 20 op_add 100 200) env '())])
+      (let-values ([(script env stack) (eval-script '(op_add 10 20 op_add 100 200) env '() '())])
         (check-equal?  stack '(300 30)))
-      (let-values ([(script env stack) (eval-script '(op_2 #"AA" op_3 #"AAA") env '())])
+      (let-values ([(script env stack) (eval-script '(op_2 #"AA" op_3 #"AAA") env '() '())])
         (check-equal?  stack '(#"AAA" #"AA"))))))
     ;; (test-case
     ;;     "Evaluate script with single conditional branch"
