@@ -131,13 +131,12 @@ To run tests `raco test .` for now. No package support is provided yet.
 
 [TODO - Briefly describe related work and explain how BSL's goals are different. ]
 
-https://bitcoin.sipa.be/miniscript/
-https://min.sc/
 
-https://docs.ivylang.org/bitcoin/
-https://github.com/spruceid/cryptoscript
-https://scrypt.studio/
-https://github.com/sapio-lang/sapio/tree/master/sapio
-
-https://chialisp.com/
-https://docs.stacks.co/write-smart-contracts/overview
+1. https://bitcoin.sipa.be/miniscript/
+2. https://min.sc/
+3. https://docs.ivylang.org/bitcoin/
+4. https://github.com/spruceid/cryptoscript
+5. https://scrypt.studio/
+6. https://github.com/sapio-lang/sapio/tree/master/sapio
+7. https://chialisp.com/
+8. https://docs.stacks.co/write-smart-contracts/overview
