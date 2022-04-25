@@ -9,11 +9,12 @@ require exchanging partially signed transactions or preimages of
 secrets or using tweaked keys. Both bitcoin contracts and the
 blockchain are described in BSL.
 
-BSL is best described with examples. The example below shows a
-coinbase transaction and how it is spent into a HTLC that is also
-later spent.
+BSL is best described with examples.
 
 ## Example: Simple Script spendable by one of two keys
+
+This example shows a coinbase transaction and how it is spent into a
+contract that can spent by two parties.
 
 ```
 # Define keys
@@ -27,6 +28,10 @@ spend alice_coins signedby alice receiver p2pkh alice 50 or p2pkh bob 50 confirm
 ```
 
 ## Example: Spending to and from an HTLC
+
+This example shows a coinbase transaction and how it is spent into
+an HTLC and how the HTLC is spent as well.
+
 
 ```
 # Define keys
@@ -47,6 +52,9 @@ spend htlc_contract signedby bob revealing "secret" receiver carol_coins confirm
 ```
 
 ## Example: One Way Payment Channel
+
+Next we show how BSL can be used to specify a contract for a one way
+channel.
 
 ```
 # Define keys
