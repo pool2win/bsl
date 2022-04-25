@@ -24,7 +24,7 @@ key alice, bob, carol
 alice_coins = p2pkh alice amount 50 confirmation height 100
 
 # Send alice coins to either bob or carol
-spend alice_coins signedby alice receiver p2pkh alice 50 or p2pkh bob 50 confirmation height 200
+spend alice_coins signedby alice receiver p2pkh bob 50 or p2pkh carol 50 confirmation height 200
 ```
 
 ## Example: Spending to and from an HTLC
