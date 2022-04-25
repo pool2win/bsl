@@ -1,5 +1,5 @@
 
-## Introduction
+# Introduction
 
 Bitcoin Scripting Language (BSL) is useful for writing bitcoin
 contracts that can be tested with a simulated blockchain. BSL can be
@@ -118,7 +118,7 @@ define htlc from $sender to $receiver timelock $time preimage $secret amount $am
 `define` is used to compose new contracts from core constructs provided by BSL.
 
 
-## Core Constructs
+# Core Constructs
 
 [TODO - List and explain core constructs supported by BSL]
 
