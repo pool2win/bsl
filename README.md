@@ -13,7 +13,20 @@ BSL is best described with examples. The example below shows a
 coinbase transaction and how it is spent into a HTLC that is also
 later spent.
 
-## example: Spending to and from an HTLC
+## Example: Simple Script spendable by one of two keys
+
+	```
+	# Define keys
+	key alice, bob, carol
+
+	# Create coinbase with p2pkh contract and confirm it
+	alice_coins = p2pkh alice amount 50 confirmation height 100
+
+	# Send alice coins to either bob or carol
+	spend alice_coins signedby alice receiver p2pkh alice 50 or p2pkh bob 50 confirmation height 200
+	```
+
+## Example: Spending to and from an HTLC
 
 	```
 	# Define keys
@@ -73,7 +86,7 @@ high level constructs like `p2pkh`, `htlc`, `sign`, `spend` and
 `confirmation height` to write out a series of statements that help us
 describe the workings of a contract that BSL execution engine can then
 run. Such scripts can be used to try out bitcoin contracts and even
-more importantly can be used to communicate ideas for bitcon contracts
+more importantly can be used to communicate ideas for bitcoin contracts
 within the community.
 
 We can also use assertions to check the validity of our scripts. With
@@ -90,103 +103,33 @@ production contracts, miniscript is the best choice at the moment.
 
 We next show how BSL can be used to compose contracts.
 
+## Example: Composing Higher Level Constructs
 
-## Example: Define a key
-
-`key alice`
-
-## Example: Describing Contracts
-
-1. A single key
+In the HTLC example above we used an construct `htlc`. We implied that
+BSL provides the implementation of BSL as part of the execution
+engine. In reality, the `htlc` is implemented using the inbuilt
+operations provided by BSL.
 
 	```
-	key alice
-	p2pkh alice
+	define htlc from $sender to $receiver timelock $time preimage $secret amount $amount ->
+		(p2pkh $receiver and reveal sha256 $secret) or (p2pkh $sender and after $time) amount $amount
 	```
 
-2. One of two keys (equally likely)
-
-	```
-	key alice, bob
-	p2pkh alice or p2pkh bob
-	```
-
-3. Alice and a 2FA service need to sign off, but after 90 days the user alone is enough
-
-	```
-	key alice, key_service
-	p2pkh alice and (p2pkh key_service and timelock for 12960)
-	```
-
-4. A 3-of-3 that turns into a 2-of-3 after 90 days (~12960 blocks)
+`define` is used to compose new contracts from core constructs provided by BSL.
 
 
+## Core Constructs
 
-5. The BOLT #3 to_local policy
-6. The BOLT #3 offered HTLC policy
-7. The BOLT #3 received HTLC policy
-
-## Example: Alice receives coinbase output as P2PKH
-
-
-```
-    blockchain initialize
-    keypair alice
-    coinbase_tx = transaction (
-        txid: 1
-        inputs: []
-        outputs: [p2pkh alice]
-    )
-    blockchain block (
-        height: 1
-        transactions: [coinbase_tx]
-    )
-```
-
-`blockchain initialize` creates a simulated blockchain.
-
-`keypair alice` creates a new keypair that is assigned to `alice`.
-
-`transaction` is used a construct a transaction. Here we create a
-coinbase transaction that takes no input and has a p2pkh output.
-
-`p2pkh alice` generated the bitcoin scriptPubKey such that alice's
-public key can generate the required scriptSig to spend the output.
-
-`blockchain block` is a construct that moves the blockchain forward to
-the given height with the list of `transactions` listed.
-
-## Example: Alice spends coinbase to Alice and Bob multisig
-
-This example continues from example 1.
-
-First Alice spends the coinbase transaction from example 1 to a
-multisig output.
-
-    keypair bob
-    alice_to_alice_and_bob = transaction (
-        input: coinbase_tx signed by alice
-        outputs: [
-            multisig 2 of 2 alice and bob
-        ]
-    )
-    blockchain block (
-        height: 2
-        transactions: [alice_to_alice_and_bob]
-    )
-    
-
-`multisig 2 of 2 alice and bob` is a construct that generates the
-scriptPubKey that can be spent once signed by both alice and bob.
+[TODO - List and explain core constructs supported by BSL]
 
 
 # Development
 
 To run tests `raco test .` for now. No package support is provided yet.
 
-
-
 # Related Work
+
+[TODO - Briefly describe related work and explain how BSL's goals are different. ]
 
 https://bitcoin.sipa.be/miniscript/
 https://min.sc/
