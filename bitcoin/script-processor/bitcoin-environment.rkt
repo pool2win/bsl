@@ -217,6 +217,24 @@
                              (cons (string-length (first stack)) stack)
                              altstack #t)])
                 ))
+    (add-opcode env '(op_equal) #x87
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (equal? (first stack) (second stack)) (list-tail stack 2))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_equalverify) #x88
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #f)]
+                    [else
+                     (values script
+                             (list-tail stack 2)
+                             altstack (equal? (first stack) (second stack)))])
+                ))
     env))
   
 (module+ test
