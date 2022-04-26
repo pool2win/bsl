@@ -257,6 +257,16 @@
         (check-equal? altstack '())
         (check-equal? script '(#"AAA" #"BBB"))
         (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_size '(#"AAA" #"BBB") bitcoin-env '("abcd" x) '())])
+        (check-equal? stack '(4 "abcd" x))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_size '(#"AAA" #"BBB") bitcoin-env '() '())])
+        (check-equal? stack '())
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
       ))
 
   (test-case

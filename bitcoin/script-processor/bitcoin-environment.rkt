@@ -208,6 +208,15 @@
                              (append (take (list-tail stack 2) 2) (take stack 2) (list-tail stack 4))
                              altstack #t)]
                     )))    
+    (add-opcode env '(op_size) #x82
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (string-length (first stack)) stack)
+                             altstack #t)])
+                ))
     env))
   
 (module+ test
