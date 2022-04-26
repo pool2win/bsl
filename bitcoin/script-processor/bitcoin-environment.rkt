@@ -235,6 +235,196 @@
                              (list-tail stack 2)
                              altstack (equal? (first stack) (second stack)))])
                 ))
+    (add-opcode env '(op_1add) #x8b
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (add1 (first stack)) (rest stack))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_1sub) #x8c
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (sub1 (first stack)) (rest stack))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_negate) #x8f
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (* -1 (first stack)) (rest stack))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_abs) #x90
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (abs (first stack)) (rest stack))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_not) #x91
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [(equal? 0 (first stack))
+                     (values script
+                             (cons 1 (rest stack))
+                             altstack #t)]
+                    [else
+                     (values script
+                             (cons 0 (rest stack))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_0notequal) #x92
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [(equal? 0 (first stack))
+                     (values script
+                             (cons 0 (rest stack))
+                             altstack #t)]
+                    [else
+                     (values script
+                             (cons 1 (rest stack))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_add) #x93
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (+ (first stack) (second stack)) (list-tail stack 2))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_sub) #x94
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [else
+                     (values script
+                             (cons (- (first stack) (second stack)) (list-tail stack 2))
+                             altstack #t)])
+                ))
+    (add-opcode env '(op_booland) #x9a
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (not (equal? (first stack) 0)) (not (equal? (second stack) 0)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_boolor) #x9b
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(or (not (equal? (first stack) 0)) (not (equal? (second stack) 0)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_numequal) #x9c
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (equal? (first stack) (second stack)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_numequalverify) #x9d
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (equal? (first stack) (second stack)))
+                     (values script (list-tail stack 2) altstack #t)]
+                    [else
+                     (values script (list-tail stack 2) altstack #f)])
+                  ))
+    (add-opcode env '(op_numnotequal) #x9e
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(or (not (number? (first stack))) (not (number? (second stack))) (not (equal? (first stack) (second stack))))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_lessthan) #x9f
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (< (second stack) (first stack)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_greaterthan) #xa0
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (> (second stack) (first stack)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_lessthanorequal) #xa1
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_greaterthanorequal) #xa2
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (>= (second stack) (first stack)))
+                     (values script (cons 1 (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_min) #xa3
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
+                     (values script (cons (second stack) (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons (first stack) (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_max) #xa4
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
+                     (values script (cons (first stack) (list-tail stack 2)) altstack #t)]
+                    [else
+                     (values script (cons (second stack) (list-tail stack 2)) altstack #t)])
+                  ))
+    (add-opcode env '(op_within) #xa4
+                (lambda (script stack altstack)
+                  (cond
+                    [(< (length stack) 3) (values script stack altstack #t)]
+                    [(and (number? (first stack)) (number? (second stack)) (number? (third stack))
+                          (<= (third stack) (first stack))
+                          (>= (third stack) (second stack)))
+                     (values script (cons 1 (list-tail stack 3)) altstack #t)]
+                    [else
+                     (values script (cons 0 (list-tail stack 3)) altstack #t)])
+                  ))
     env))
   
 (module+ test
