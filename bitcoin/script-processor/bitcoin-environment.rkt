@@ -9,9 +9,6 @@
 
 (provide make-bitcoin-environment)
 
-(module+ test
-  (require rackunit))
-
 (define (handle-conditional condition env script stack altstack)
   (match script
     [(list ifexp endifexp)
@@ -425,13 +422,4 @@
                     [else
                      (values script (cons 0 (list-tail stack 3)) altstack #t)])
                   ))
-    env))
-  
-(module+ test
-  (test-case
-      "smoke test for making bitcoin environment"
-    (let ([bitcoin-env (make-bitcoin-environment)])
-      (check-not-eq? bitcoin-env '())
-      (check-true (is-opcode? #x00 bitcoin-env))
-      (check-true (is-opcode? #x01 bitcoin-env))
-      )))
+    env))  

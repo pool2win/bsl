@@ -10,6 +10,15 @@
 
 (module+ test
   (test-case
+      "smoke test for making bitcoin environment"
+    (let ([bitcoin-env (make-bitcoin-environment)])
+      (check-not-eq? bitcoin-env '())
+      (check-true (is-opcode? #x00 bitcoin-env))
+      (check-true (is-opcode? #x01 bitcoin-env))
+      )))
+
+(module+ test
+  (test-case
       "test bitcoin opcodes in bitcoin-environment"
     (let ([bitcoin-env (make-bitcoin-environment)])
       (let-values ([(script stack altstack verified) (apply-opcode 'op_false '() bitcoin-env '() '())])
