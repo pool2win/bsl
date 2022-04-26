@@ -23,7 +23,7 @@ key alice, bob, carol
 # Create coinbase with p2pkh contract and confirm it
 alice_coins = p2pkh alice amount 50 confirmation height 100
 
-# Send alice coins to either bob or carol
+# Send alice coins to a contract allowing either bob or carol to spend further
 spend alice_coins signedby alice receiver p2pkh bob 50 or p2pkh carol 50 confirmation height 200
 ```
 
