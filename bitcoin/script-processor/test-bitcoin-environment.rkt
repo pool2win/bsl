@@ -2,7 +2,8 @@
 
 (require "environment.rkt"
          "bitcoin-environment.rkt"
-         "eval-script.rkt")
+         "eval-script.rkt"
+         "../../crypto-utils.rkt")
 
 (module+ test
   (require rackunit))
@@ -640,6 +641,32 @@
         (check-equal? verified #t))
       ))
 
+  (test-case
+      "test bitcoin crypto opcodes in bitcoin-environment"
+    (let ([bitcoin-env (make-bitcoin-environment)])
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_ripemd160 '(#"AAA" #"BBB") bitcoin-env '(#"abcd" 10 10 c) '())])
+        (check-equal? stack (list (hash160 #"abcd") 10 10 'c))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_ripemd160 '(#"AAA" #"BBB") bitcoin-env '() '())])
+        (check-equal? stack '())
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_sha1 '(#"AAA" #"BBB") bitcoin-env '(#"abcd" 10 10 c) '())])
+        (check-equal? stack (list (sha1 #"abcd") 10 10 'c))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_sha1 '(#"AAA" #"BBB") bitcoin-env '() '())])
+        (check-equal? stack '())
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      ))
+      
   (test-case
       "test eval-script in bitcoin-environment"
     (let ([bitcoin-env (make-bitcoin-environment)])

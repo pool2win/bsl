@@ -5,7 +5,8 @@
          racket/list
          racket/match
          "environment.rkt"
-         "eval-script.rkt")
+         "eval-script.rkt"
+         "../../crypto-utils.rkt")
 
 (provide make-bitcoin-environment)
 
@@ -421,5 +422,21 @@
                      (values script (cons 1 (list-tail stack 3)) altstack #t)]
                     [else
                      (values script (cons 0 (list-tail stack 3)) altstack #t)])
+                  ))
+
+    ;; crypto opcodes
+    (add-opcode env '(op_ripemd160) #xa6
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script (cons (hash160 (first stack)) (rest stack)) altstack #t)])
+                  ))
+    (add-opcode env '(op_sha1) #xa7
+                (lambda (script stack altstack)
+                  (cond
+                    [(empty? stack) (values script stack altstack #t)]
+                    [else
+                     (values script (cons (sha1 (first stack)) (rest stack)) altstack #t)])
                   ))
     env))  
