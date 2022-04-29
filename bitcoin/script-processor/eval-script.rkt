@@ -1,7 +1,8 @@
 #lang errortrace racket/base
 
 (require racket/list
-         "environment.rkt")
+         "environment.rkt"
+         "../transaction.rkt")
 
 (provide apply-opcode eval-script)
 
@@ -29,8 +30,10 @@
 ;; 1.1 If primitive: execute it
 ;; 1.1 If not, then call eval on the procedure with the arguments (I don't think this should happen in Script)
 
-(define (apply-opcode code script env stack altstack)
-  (let-values ([(script stack altstack verified) (apply (get-opcode code env) (list script stack altstack))])
+(define (apply-opcode code script env stack altstack
+                      [tx (make-transaction #:version-number 0 #:flag 0 #:inputs '() #:outputs '() #:lock-time 0)]
+                      [input-index '()])
+  (let-values ([(script stack altstack verified) (apply (get-opcode code env) (list script stack altstack tx input-index))])
     (values script stack altstack verified)))
 
 

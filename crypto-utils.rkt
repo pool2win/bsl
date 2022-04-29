@@ -3,7 +3,8 @@
 (module+ test
   (require rackunit))
 
-(provide double-sha256-hash generate-keypair hash160 keypair keypair-priv keypair-pub sha1)
+(provide generate-keypair keypair keypair-priv keypair-pub
+         ripemd160 hash160 sha1 sha256 double-sha256-hash)
 
 (require crypto crypto/libcrypto)
 
@@ -14,12 +15,17 @@
 
 ;; I have seen people implement this with contracts and types
 ;; This is a reminder that these functions are not for prodcution use :)
-(define (hash160 msg)
+(define (ripemd160 msg)
   (digest ripemd160-impl msg))
+
+(define (hash160 msg)
+  (ripemd160 (sha256 msg)))
 
 (define (sha1 msg)
   (digest sha1-impl msg))
 
+(define (sha256 msg)
+  (digest sha256-impl msg))
 
 (define ec-impl (get-pk 'ec libcrypto-factory))
 (get-digest 'sha256 libcrypto-factory)
