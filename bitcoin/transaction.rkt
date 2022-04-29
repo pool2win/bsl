@@ -1,8 +1,5 @@
 #lang racket/base
 
-(module+ test
-  (require rackunit))
-
 (provide (struct-out outpoint)
          (struct-out input)
          (struct-out output)

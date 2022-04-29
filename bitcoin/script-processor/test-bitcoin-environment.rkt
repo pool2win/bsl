@@ -3,6 +3,7 @@
 (require "environment.rkt"
          "bitcoin-environment.rkt"
          "eval-script.rkt"
+         "../transaction.rkt"
          "../../crypto-utils.rkt")
 
 (module+ test
@@ -645,7 +646,7 @@
       "test bitcoin crypto opcodes in bitcoin-environment"
     (let ([bitcoin-env (make-bitcoin-environment)])
       (let-values ([(script stack altstack verified) (apply-opcode 'op_ripemd160 '(#"AAA" #"BBB") bitcoin-env '(#"abcd" 10 10 c) '())])
-        (check-equal? stack (list (hash160 #"abcd") 10 10 'c))
+        (check-equal? stack (list (ripemd160 #"abcd") 10 10 'c))
         (check-equal? altstack '())
         (check-equal? script '(#"AAA" #"BBB"))
         (check-equal? verified #t))
@@ -665,6 +666,90 @@
         (check-equal? altstack '())
         (check-equal? script '(#"AAA" #"BBB"))
         (check-equal? verified #t))
+
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_sha256 '(#"AAA" #"BBB") bitcoin-env '(#"abcd" 10 10 c) '())])
+        (check-equal? stack (list (sha256 #"abcd") 10 10 'c))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_sha256 '(#"AAA" #"BBB") bitcoin-env '() '())])
+        (check-equal? stack '())
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_hash160 '(#"AAA" #"BBB") bitcoin-env '(#"abcd" 10 10 c) '())])
+        (check-equal? stack (list (hash160 #"abcd") 10 10 'c))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_hash160 '(#"AAA" #"BBB") bitcoin-env '() '())])
+        (check-equal? stack '())
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_hash256 '(#"AAA" #"BBB") bitcoin-env '(#"abcd" 10 10 c) '())])
+        (check-equal? stack (list (double-sha256-hash #"abcd") 10 10 'c))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_hash256 '(#"AAA" #"BBB") bitcoin-env '() '())])
+        (check-equal? stack '())
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+
+      (let-values ([(script stack altstack verified) (apply-opcode 'op_codeseparator '(#"AAA" #"BBB") bitcoin-env '(a b) '())])
+        (check-equal? stack '(a b))
+        (check-equal? altstack '())
+        (check-equal? script '(#"AAA" #"BBB"))
+        (check-equal? verified #t))
+
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(0) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
+        (check-equal? verified #t))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(-1) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
+        (check-equal? verified #f))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '() '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
+        (check-equal? verified #f))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence #xffffffff #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(0) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
+        (check-equal? verified #f))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 50) 0)])
+
+        (check-equal? verified #f))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 101) 0)])
+
+        (check-equal? verified #t))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 500000001) 0)])
+
+        (check-equal? verified #f))
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+                    [(script stack altstack verified)
+                     (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(500000001) '()
+                                   (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 100) 0)])
+
+        (check-equal? verified #f))
       ))
       
   (test-case
