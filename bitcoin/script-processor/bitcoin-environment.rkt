@@ -500,6 +500,21 @@
                   ))
     (add-opcode env '(op_checksequenceverify) #xb2
                 (lambda (script stack altstack tx input-index)
-                  (values script stack altstack #t)
+                  (let ([disabled-flag  (arithmetic-shift 1 31)]
+                        [sequence-type-flag (arithmetic-shift 1 22)]
+                        [sequence-locktime-mask #x0000ffff]
+                        [sequence (input-sequence (list-ref (transaction-inputs tx) input-index))])
+                    (cond
+                      [(or (empty? stack)
+                           (negative? (first stack))
+                           (and (= (bitwise-and (first stack) disabled-flag) 0)
+                                (or
+                                 (< (transaction-version-number tx) 2)
+                                 (= (bitwise-and sequence disabled-flag) 1)
+                                 (not (= (bitwise-and (first stack) sequence-type-flag)
+                                         (bitwise-and sequence sequence-type-flag)))
+                                 (<= (first stack) sequence))))
+                           (values script stack altstack #f)]
+                      [else (values script stack altstack #t)]))
                   ))
     env))
