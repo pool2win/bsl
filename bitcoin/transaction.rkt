@@ -11,7 +11,7 @@
 ;; transaction-hash is little endian
 (struct outpoint (transaction-hash index) #:transparent)
 
-(struct input (script witness sequence point) #:transparent)
+(struct input (script [witness #:mutable] sequence point) #:transparent)
 ;; make-input defined to take keyword args and call the constructor
 (define (make-input #:script script #:witness witness #:sequence sequence #:point point)
   (input script witness sequence point))
@@ -25,5 +25,9 @@
 
 ;; make-transaction defined to take keyword args and call the constructor
 (define (make-transaction #:version-number version-number #:flag flag
-                          #:inputs inputs #:outputs outputs #:lock-time lock-time)
+                          #:inputs inputs #:witnesses [witnesses '()]
+                          #:outputs outputs #:lock-time lock-time)
+  (for/list ([witness witnesses]
+             [input inputs])
+    (set-input-witness! input witness))
   (transaction version-number flag inputs outputs lock-time))

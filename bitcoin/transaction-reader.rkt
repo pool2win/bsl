@@ -57,9 +57,10 @@
   (let* ([tx-bytes (hex-string->bytes tx-data)]
          [tx-port (open-input-bytes tx-bytes)]
          [version-number (parse-version tx-port)]
-         [num-inputs-or-marker (read-varint-value tx-port)])
+         [num-inputs-or-marker (read-varint-value tx-port)]
+         [segwit-flag (peek-byte tx-port)])
     (cond
-      [(equal? num-inputs-or-marker #x00)
+      [(and (equal? num-inputs-or-marker #x00) (equal? segwit-flag #x01))
        (decode-witness-transaction tx-port version-number num-inputs-or-marker)]
       [else
        (decode-legacy-transaction tx-port version-number num-inputs-or-marker)])))
@@ -69,10 +70,37 @@
          [num-outputs (read-varint-value tx-port)]
          [outputs (parse-outputs num-outputs '() tx-port)]
          [lock-time (parse-lock-time tx-port)])
-    (make-transaction #:version-number version-number #:flag 0 #:inputs inputs #:outputs outputs #:lock-time lock-time)))
+    (make-transaction #:version-number version-number #:flag 0
+                      #:inputs inputs #:witnesses '()
+                      #:outputs outputs #:lock-time lock-time)))
 
 (define (decode-witness-transaction tx-port version-number marker)
-  '())
+  (let* ([skipped-flag-byte (read-bytes 1 tx-port)]
+         [num-inputs (read-varint-value tx-port)]
+         [inputs (parse-inputs num-inputs '() tx-port)]
+         [num-outputs (read-varint-value tx-port)]
+         [outputs (parse-outputs num-outputs '() tx-port)]
+         [witnesses (parse-witnesses num-inputs '() tx-port)]
+         [lock-time (parse-lock-time tx-port)])
+    (make-transaction #:version-number version-number #:flag 0
+                      #:inputs inputs #:witnesses witnesses
+                      #:outputs outputs #:lock-time lock-time)))
+
+(define (parse-witnesses num-witnesses witnesses tx-port)
+  (cond
+    [(= 0 num-witnesses) witnesses]
+    [else (let ([witness (parse-witness tx-port)])
+            (parse-witnesses (sub1 num-witnesses) (append witnesses (list witness)) tx-port))]))
+
+(define (parse-witness tx-port)
+  (let ([num-items (read-varint-value tx-port)])
+    (parse-witness-data num-items '() tx-port)))
+
+(define (parse-witness-data num-items witness-data tx-port)
+  (cond
+    [(= 0 num-items) witness-data]
+    [else (let ([next-script-element (read-bytes (read-varint-value tx-port) tx-port)])
+            (parse-witness-data (sub1 num-items) (append witness-data (list next-script-element)) tx-port))]))
 
 (module+ test
   (test-case
@@ -123,6 +151,31 @@
                      (output #"\0c\0" 17708900)))
       (check-equal? (transaction-lock-time tx) 700591787))
     ))
-    ;; (let ([tx-data
-    ;;        "010000000100010000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000"])
-    ;;   (display (decode-transaction tx-data)))))
+
+(module+ test
+  (test-case
+      "parse segwit transaction from bytes Native P2WPKH from BIP 143"
+    (let* ([tx-data
+            "01000000000102fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f00000000494830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01eeffffffef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac000247304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee0121025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee635711000000"]
+           [tx (decode-transaction tx-data)])
+      (check-equal? 2 (length (transaction-inputs tx)))
+      (check-equal? '() (input-witness (list-ref (transaction-inputs tx) 0)))
+      (check-equal? "304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee01"
+                    (bytes->hex-string (list-ref (input-witness (list-ref (transaction-inputs tx) 1)) 0)))
+      (check-equal? "025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357"
+                    (bytes->hex-string (list-ref (input-witness (list-ref (transaction-inputs tx) 1)) 1)))
+    )))
+
+(module+ test
+  (test-case
+      "parse segwit transaction from bytes P2SH-P2WPKH from BIP 143"
+    (let* ([tx-data
+            "01000000000101db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477010000001716001479091972186c449eb1ded22b78e40d009bdf0089feffffff02b8b4eb0b000000001976a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac0008af2f000000001976a914fd270b1ee6abcaea97fea7ad0402e8bd8ad6d77c88ac02473044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb012103ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a2687392040000"]
+           [tx (decode-transaction tx-data)])
+      (check-equal? 1 (length (transaction-inputs tx)))
+      (check-equal? "3044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb01"
+                    (bytes->hex-string (list-ref (input-witness (list-ref (transaction-inputs tx) 0)) 0)))
+      (check-equal? "03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"
+                    (bytes->hex-string (list-ref (input-witness (list-ref (transaction-inputs tx) 0)) 1)))
+    )))
+
