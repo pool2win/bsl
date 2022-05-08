@@ -45,11 +45,11 @@
   (test-case
       "Add opcode, check and apply it"
     (let ([env (make-initial-env)])
-      (add-opcode env '(op_1add) #x8b (lambda (script stack altstack)
+      (add-opcode env '(op_1add) #x8b (lambda (script stack altstack tx input-index)
                                         (let*-values ([(args rest-of-script) (split-at script 1)]
                                                       [(stack) (cons (apply add1 args) stack)])
                                           (values rest-of-script stack altstack #t))))
-      (add-opcode env '(op_add) #x93 (lambda (script stack altstack)
+      (add-opcode env '(op_add) #x93 (lambda (script stack altstack tx input-index)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
                                          (values rest-of-script stack altstack #t))))
@@ -75,15 +75,15 @@
   (test-case
       "Evaluate simple script"
     (let*-values ([(env) (make-initial-env)])
-      (add-opcode env '(op_add) #x93 (lambda (script stack altstack)
+      (add-opcode env '(op_add) #x93 (lambda (script stack altstack tx input-index)
                                        (let*-values ([(args rest-of-script) (split-at script 2)]
                                                      [(stack) (cons (apply + args) stack)])
                                          (values rest-of-script stack '() #t))))
       (add-opcode env '(op_2) #x02
-                  (lambda (script stack altstack)
+                  (lambda (script stack altstack tx input-index)
                     (values (list-tail script 1) (cons (first script) stack) '() #t)))
       (add-opcode env '(op_3) #x03
-                  (lambda (script stack altstack)
+                  (lambda (script stack altstack tx input-index)
                     (values (list-tail script 1) (cons (first script) stack) '() #t)))
       (let-values ([(script env stack altstack) (eval-script '(op_add 1 2) env '() '())])
         (check-equal? script '())
