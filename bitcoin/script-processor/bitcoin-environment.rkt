@@ -36,7 +36,7 @@
                 (lambda (script stack altstack tx input-index)
                   (values script (cons 0 stack) altstack #t)))
     (for ([code (in-inclusive-range 1 75)])
-      (add-opcode env (string-join `("op_" ,(~a code)) "") code
+      (add-opcode env (list (string->symbol (string-join `("op_" ,(~a code)) ""))) code
                   (lambda (script stack altstack tx input-index)
                     (values (list-tail script 1) (cons (first script) stack) altstack #t))))
     (add-opcode env '(op_pushdata1) #x4c
@@ -55,7 +55,7 @@
                 (lambda (script stack altstack tx input-index)
                   (values script (cons 1 stack) altstack #t)))
     (for ([code (in-inclusive-range #x52 #x60)])
-      (add-opcode env (string-join `("op_" ,(~a (- code 80))) "") code
+      (add-opcode env (list (string->symbol (string-join `("op_" ,(~a (- code 80))) ""))) code
                   (lambda (script stack altstack tx input-index)
                     (values script (cons (- code 80) stack) altstack #t))))
     (add-opcode env '(op_nop) #x61
