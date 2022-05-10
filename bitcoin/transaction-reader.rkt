@@ -179,3 +179,14 @@
                     (bytes->hex-string (list-ref (input-witness (list-ref (transaction-inputs tx) 0)) 1)))
     )))
 
+(module+ test
+  (test-case
+      "parse legacy transaction from tx_valid data set"
+    (let* ([tx-data "010000000100010000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000"]
+           [tx (decode-transaction tx-data)])
+      (check-equal? 1 (length (transaction-inputs tx)))
+      (check-equal? #"\0\1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+                    (outpoint-transaction-hash (input-point (list-ref (transaction-inputs tx) 0))))
+      (check-equal? 0 (outpoint-index (input-point (list-ref (transaction-inputs tx) 0))))
+    )))
+
