@@ -9,27 +9,6 @@
 (module+ test
   (require rackunit))
 
-;; Goal, execute script "OP_PUSHDATA1 1 10 OP_PUSHDATA1 1 100 OP_ADD" and result in 110 on the stack
-;; OP_PUSHDATA1 	76 	0x4c 
-;; OP_ADD               147     0x93
-
-
-;; eval will convert a list of bytes into a series of opcode-procs
-;; eval will have to consume data from an in-port based on opcode.
-;; For example, op_pushdata1 consumes 1 + 1 bytes
-
-
-;; What does eval do?
-;; 1. Identify a byte as an opcode
-;; 2. Consumes operands from in-port if opcode specifies anyone
-;; 3. Calls apply for the procedure that opcode directs to
-;; 4. Apply updates the env with the result
-
-;; What does apply do?
-;; 1. Checks the procedure is a primitive
-;; 1.1 If primitive: execute it
-;; 1.1 If not, then call eval on the procedure with the arguments (I don't think this should happen in Script)
-
 (define (apply-opcode code script env stack altstack
                       [tx (make-transaction #:version-number 0 #:flag 0 #:inputs '() #:outputs '() #:lock-time 0)]
                       [input-index '()])
