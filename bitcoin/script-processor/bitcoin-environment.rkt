@@ -13,21 +13,22 @@
 
 (define (handle-conditional condition env script stack altstack)
   (match script
-    [(list ifexp endifexp)
-     #:when (and (eq? endifexp 'op_endif) (eq? (first stack) condition))
-     (let-values ([(rest-script new-env new-stack altstack) (eval-script ifexp env (rest stack) altstack)])
-       (values (list-tail script 2) new-stack altstack #t))]
-    [(list ifexp endifexp)
-     #:when (and (eq? endifexp 'op_endif) (not (eq? (first stack) condition)))
-       (values (list-tail script 2) (rest stack) altstack #t)]
-    [(list ifexp elseexp elseifexp endifexp)
-     #:when (and (eq? elseexp 'op_else) (eq? endifexp 'op_endif) (eq? (first stack) condition))
+    [(list ifexp ... 'op_else elseifexp ... 'op_endif tail-script ...)
+     #:when (eq? (first stack) condition)
      (let-values ([(rest-script new-env stack altstack) (eval-script ifexp env (rest stack) altstack)])
-       (values (list-tail script 4) stack altstack #t))]
-    [(list ifexp elseexp elseifexp endifexp)
-     #:when (and (eq? elseexp 'op_else) (eq? endifexp 'op_endif) (not (eq? (first stack) condition)))
+       (values tail-script stack altstack #t))]
+    [(list ifexp ... 'op_else elseifexp ... 'op_endif tail-script ...)
+     #:when (not (eq? (first stack) condition))
      (let-values ([(rest-script new-env stack altstack) (eval-script elseifexp env (rest stack) altstack)])
-       (values (list-tail script 4) stack altstack #t))]))
+       (values tail-script stack altstack #t))]
+    [(list ifexp ... 'op_endif tail-script ...)
+     #:when (eq? (first stack) condition)
+     (let-values ([(rest-script new-env new-stack altstack) (eval-script ifexp env (rest stack) altstack)])
+       (values tail-script new-stack altstack #t))]
+    [(list ifexp ... 'op_endif tail-script ...)
+     #:when (not (eq? (first stack) condition))
+     (values tail-script (rest stack) altstack #t)]
+    ))
 
 (define (make-bitcoin-environment)
   (let ([env (make-initial-env)]
