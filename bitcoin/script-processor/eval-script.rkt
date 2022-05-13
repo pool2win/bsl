@@ -15,7 +15,6 @@
   (let-values ([(script stack altstack verified) (apply (get-opcode code env) (list script stack altstack tx input-index))])
     (values script stack altstack verified)))
 
-
 (module+ test
   (test-case
       "Setup initial environment"
@@ -44,7 +43,7 @@
   (cond
     [(empty? script) (values script env stack altstack)]
     [(not (is-opcode? (first script) env))
-     (error "Bad script ~a" script)]
+     (error "Bad script: " script)]
     [else
      (let-values ([(script stack altstack verified) (apply-opcode (first script) (rest script) env stack altstack)])
        (eval-script script env stack altstack))]))
