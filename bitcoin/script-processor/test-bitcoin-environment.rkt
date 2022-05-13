@@ -805,9 +805,19 @@
                     (eval-script '(op_if
                                    (1 1 op_if (1 #"AAA") op_else (1 #"ZZ") op_endif)
                                    op_else
-                                   (2 #"BB" 3 #"BBB") op_endif) bitcoin-env '(1 blah) '())])
+                                   (2 #"BB" 3 #"BBB") op_endif)
+                                 bitcoin-env '(1 blah) '())])
         (check-equal? script '())
         (check-equal? stack '(#"AAA" blah)))
+      (let-values ([(script env stack altstack)
+                    (eval-script '(op_if
+                                   (1 1 op_if (1 #"AAA") op_else (1 #"ZZ") op_endif)
+                                   op_else
+                                   (1 0 op_if (1 #"BBB") op_else (1 #"XX") op_endif)
+                                   op_endif)
+                                 bitcoin-env '(0 blah) '())])
+        (check-equal? script '())
+        (check-equal? stack '(#"XX" blah)))
       (let-values ([(script env stack altstack)
                     (eval-script '(op_if (2 #"AA" 3 #"AAA") op_else (2 #"BB" 3 #"BBB") op_endif) bitcoin-env '(1 blah) '())])
         (check-equal? script '())
