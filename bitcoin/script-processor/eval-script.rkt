@@ -15,7 +15,6 @@
   (let-values ([(script stack altstack verified) (apply (get-opcode code env) (list script stack altstack tx input-index))])
     (values script stack altstack verified)))
 
-
 (module+ test
   (test-case
       "Setup initial environment"
@@ -40,14 +39,15 @@
 
 ;; Excute a script in the context of a bitcoin-environment
 ;; Script is a script in list format, e.g. '(op_dup op_hash160 #"deadbeef" op_equalverify)
-(define (eval-script script env stack altstack)
+;; Return same as apply-opcode (values script stack altstack verified)
+(define (eval-script script env stack altstack [verified #t])
   (cond
-    [(empty? script) (values script env stack altstack)]
+    [(empty? script) (values script stack altstack verified)]
     [(not (is-opcode? (first script) env))
      (error "Bad script ~a" script)]
     [else
      (let-values ([(script stack altstack verified) (apply-opcode (first script) (rest script) env stack altstack)])
-       (eval-script script env stack altstack))]))
+       (eval-script script env stack altstack verified))]))
        
 
 (module+ test
@@ -64,10 +64,10 @@
       (add-opcode env '(op_3) #x03
                   (lambda (script stack altstack tx input-index)
                     (values (list-tail script 1) (cons (first script) stack) '() #t)))
-      (let-values ([(script env stack altstack) (eval-script '(op_add 1 2) env '() '())])
+      (let-values ([(script stack altstack verified) (eval-script '(op_add 1 2) env '() '())])
         (check-equal? script '())
         (check-equal?  stack '(3)))
-      (let-values ([(script env stack altstack) (eval-script '(op_add 10 20 op_add 100 200) env '() '())])
+      (let-values ([(script stack altstack verified) (eval-script '(op_add 10 20 op_add 100 200) env '() '())])
         (check-equal?  stack '(300 30)))
-      (let-values ([(script env stack altstack) (eval-script '(op_2 #"AA" op_3 #"AAA") env '() '())])
+      (let-values ([(script stack altstack verified) (eval-script '(op_2 #"AA" op_3 #"AAA") env '() '())])
         (check-equal?  stack '(#"AAA" #"AA"))))))
