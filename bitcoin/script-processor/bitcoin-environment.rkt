@@ -11,23 +11,42 @@
 
 (provide make-bitcoin-environment)
 
-(define (handle-conditional condition env script stack altstack)
-  (match script
-    [(list ifexp ... 'op_else elseifexp ... 'op_endif tail-script ...)
-     #:when (eq? (first stack) condition)
-     (let-values ([(rest-script new-env stack altstack) (eval-script ifexp env (rest stack) altstack)])
-       (values tail-script stack altstack #t))]
-    [(list ifexp ... 'op_else elseifexp ... 'op_endif tail-script ...)
-     #:when (not (eq? (first stack) condition))
-     (let-values ([(rest-script new-env stack altstack) (eval-script elseifexp env (rest stack) altstack)])
-       (values tail-script stack altstack #t))]
-    [(list ifexp ... 'op_endif tail-script ...)
-     #:when (eq? (first stack) condition)
-     (let-values ([(rest-script new-env new-stack altstack) (eval-script ifexp env (rest stack) altstack)])
-       (values tail-script new-stack altstack #t))]
-    [(list ifexp ... 'op_endif tail-script ...)
-     #:when (not (eq? (first stack) condition))
-     (values tail-script (rest stack) altstack #t)]
+(module+ test
+  (require rackunit))
+
+(define (jump-to-after opcode script)
+  ;; jump to script just after the first occurrence of opcode
+  (let ([lst (member opcode script)])
+    (cond
+      [lst (rest lst)]
+      [else '()])))
+
+(module+ test
+  (test-case
+      "test jump-to-after"
+    (let ([lst '(1 2 3 4 3 2 1 3)])
+      (check-equal? '(4 3 2 1 3) (jump-to-after 3 lst))
+      (check-equal? '() (jump-to-after 100 lst)))))
+
+
+(define (handle-conditional opcode env script stack altstack)
+  (cond
+    [(or
+      (and (equal? opcode 'op_if) (= (first stack) 1))
+      (and (equal? opcode 'op_notif) (= (first stack) 0))
+      )
+     (eval-script script env (rest stack) altstack)]
+    [(or
+      (and (equal? opcode 'op_if) (= (first stack) 0))
+      (and (equal? opcode 'op_notif) (= (first stack) 1))
+      )
+     (eval-script (jump-to-after 'op_else script) env (rest stack) altstack)]
+    [(equal? opcode 'op_else)
+     ;; return values of rest script after end, stack, altstack, verified as is the current status
+     (eval-script (jump-to-after 'op_endif script) env stack altstack)]
+    [(equal? opcode 'op_endif)
+     ;; return values of rest script, stack, altstack, verified as is the current status
+     (eval-script script env stack altstack)]
     ))
 
 (define (make-bitcoin-environment)
@@ -64,16 +83,16 @@
                   (values script stack altstack #t)))
     (add-opcode env '(op_if) #x63
                 (lambda (script stack altstack tx input-index)
-                  (handle-conditional 1 env script stack altstack)))
+                  (handle-conditional 'op_if env script stack altstack)))
     (add-opcode env '(op_notif) #x64
                 (lambda (script stack altstack tx input-index)
-                  (handle-conditional 0 env script stack altstack)))
+                  (handle-conditional 'op_notif env script stack altstack)))
     (add-opcode env '(op_else) #x67
                 (lambda (script stack altstack tx input-index)
-                  (values script stack altstack #t)))
+                  (handle-conditional 'op_else env script stack altstack))) ;; (values script stack altstack #t)))
     (add-opcode env '(op_endif) #x68
                 (lambda (script stack altstack tx input-index)
-                  (values script stack altstack #t)))
+                  (handle-conditional 'op_endif env script stack altstack))) ;; (values script stack altstack #t)))
     (add-opcode env '(op_verify) #x69
                 (lambda (script stack altstack tx input-index)
                   (values script stack altstack (eq? (first stack) 1))))
