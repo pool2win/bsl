@@ -1,4 +1,4 @@
-#lang racket/base
+#lang errortrace racket/base
 
 (provide transaction-digest-for-signing
          sighash-all sighash-none sighash-single sighash-anyonecanpay)
@@ -28,7 +28,7 @@
 
 (define (digest-prevouts tx index [sighash 'all])
   (bytes-append* (for/list ([input (transaction-inputs tx)])
-                   (digest-outpoint (input-prevout input)))))
+                   (digest-outpoint (input-point input)))))
 
 (define (digest-sequences tx)
   (bytes-append* (for/list ([input (transaction-inputs tx)])
@@ -39,7 +39,12 @@
         "bitcoin hash prevouts for transaction inputs"
       (let* ([input1 (input '() '() 1234 (outpoint "deadbeef" 1))]
              [input2 (input '() '() 5678 (outpoint "deadbeff" 2))]
-             [test-tx (transaction 1 1 (list input1 input2) '() '() 1)])
+             [test-tx (make-transaction #:version-number 1
+                                        #:flag 1
+                                        #:inputs (list input1 input2)
+                                        #:witnesses '()
+                                        #:outputs '()
+                                        #:lock-time 1)])
         (check-equal? (digest-prevouts test-tx 1)
                       (bytes-append (hex->bytes "deadbeef")
                                     (integer->integer-bytes 1 4 #f #f)
@@ -60,7 +65,7 @@
 
 (define (serialize-outpoint tx index)
    ;; depends on sighash?
-  (digest-outpoint (input-prevout (list-ref (transaction-inputs tx) index))))
+  (digest-outpoint (input-point (list-ref (transaction-inputs tx) index))))
 
 (define (serialize-amount amount)
   (to-little-endian-n-bytes amount 8))
@@ -102,7 +107,7 @@
     "transaction serialization for signing"
   (let* ([test-prevout (outpoint "deadbeef" 0)]
          [test-inputs (list (make-input #:script '(script elements) #:witness '()
-                                        #:sequence 1 #:prevout test-prevout))]
+                                        #:sequence 1 #:point test-prevout))]
          [test-outputs (list (output '(script elements) 100))]
          [test-transaction (make-transaction #:version-number 1
                                              #:flag 0
