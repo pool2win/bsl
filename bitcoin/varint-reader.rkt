@@ -28,6 +28,8 @@
 (module+ test
   (test-case
       "read a varint from given hex encoded bytes"
+    (let ([value (read-varint-value (open-input-bytes (hex-string->bytes "49")))]) 
+      (check-equal?  value 73))
     (let ([value (read-varint-value (open-input-bytes (hex-string->bytes "bb")))]) 
       (check-equal?  value 187))
     (let ([value (read-varint-value (open-input-bytes (hex-string->bytes "fd0100")))])

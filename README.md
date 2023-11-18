@@ -1,13 +1,12 @@
 
 # Introduction
 
-Bitcoin Scripting Language (BSL) is useful for writing bitcoin
-contracts that can be tested with a simulated blockchain. BSL can be
-used for writing contracts that require out of band communication
-between participants - enabling writing and testing of contracts that
-require exchanging partially signed transactions or preimages of
-secrets or using tweaked keys. Both bitcoin contracts and the
-blockchain are described in BSL.
+Bitcoin Scripting Language (BSL) provides a high level language to
+write bitcoin L2 contracts then test these contracts with a simulated
+blockchain. The contracts and the blockchain are described in BSL and
+executed with the BSL execution environment. BSL supports contracts
+that require out of band communication between participants and the
+simulator supports these communications too.
 
 BSL is best described with examples.
 
@@ -20,8 +19,8 @@ contract that can spent by two parties.
 # Define keys
 key alice, bob, carol
 
-# Create coinbase with p2pkh contract and confirm it
-alice_coins = p2pkh alice, amount 50, confirmation height 100
+# Create coinbase with p2pkh contract, confirm it at given height and grab a reference to them
+alice_coins = p2pkh alice amount 50 confirmation height 100
 
 # Send alice coins to a contract allowing either bob or carol to spend further
 spend alice_coins, signedby alice, receiver p2pkh bob amount 50 or p2pkh carol amount 50, confirmation height 200
