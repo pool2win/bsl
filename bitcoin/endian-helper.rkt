@@ -1,5 +1,4 @@
 #lang racket/base
-
 (require file/sha1)
 
 (provide to-little-endian-n-bytes
@@ -26,6 +25,7 @@
 (define (to-little-endian-hex-string value num_bytes)
   (bytes->hex-string (to-little-endian-n-bytes value num_bytes)))
 
+;; read a hex string in little endian into an integer
 (define (read-little-endian-hex-string value)
   (read-little-endian-bytes (hex-string->bytes value)))
 

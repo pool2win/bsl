@@ -48,8 +48,16 @@
       (check-equal? (outpoint-transaction-hash (input-point se)) (hex-string->bytes "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
       (check-equal? (outpoint-index (input-point se)) 1)
       (check-equal? (input-witness se) '())
-      (check-equal? (input-script se) #"")
-      )))
+      (check-equal? (input-script se) #""))
+    (let* ([outputs (transaction-outputs decoded)]
+          [s (list-ref outputs 0)]
+          [se (list-ref outputs 1)])
+      (check-equal? (output-script s) (hex-string->bytes "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac")) ;; drop varint prefix, 19
+      (check-equal? (output-value s) (read-little-endian-hex-string "202cb20600000000"))
+
+      (check-equal? (output-script se) (hex-string->bytes "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
+      (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000"))
+    )))
   
 (test-case
     "Native P2WPKH - signed tx example from bip0143"
@@ -72,6 +80,13 @@
       (check-equal? (outpoint-transaction-hash (input-point se)) (hex-string->bytes "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
       (check-equal? (outpoint-index (input-point se)) 1)
       (check-equal? (length (input-witness se)) 2)
-      (check-equal? (bytes->hex-string (input-script se)) "")
-      )))
-  
+      (check-equal? (bytes->hex-string (input-script se)) ""))
+    (let* ([outputs (transaction-outputs decoded)]
+          [s (list-ref outputs 0)]
+          [se (list-ref outputs 1)])
+      (check-equal? (output-script s) (hex-string->bytes "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac")) ;; drop varint prefix, 19
+      (check-equal? (output-value s) (read-little-endian-hex-string "202cb20600000000"))
+
+      (check-equal? (output-script se) (hex-string->bytes "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
+      (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000"))
+    )))
