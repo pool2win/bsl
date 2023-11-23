@@ -11,10 +11,10 @@
 ;; transaction-hash is little endian
 (struct outpoint (transaction-hash index) #:transparent)
 
-(struct input (script [witness #:mutable] sequence point) #:transparent)
+(struct input (script [witness #:mutable] sequence prevout) #:transparent)
 ;; make-input defined to take keyword args and call the constructor
-(define (make-input #:script script #:witness witness #:sequence sequence #:point point)
-  (input script witness sequence point))
+(define (make-input #:script script #:witness witness #:sequence sequence #:prevout prevout)
+  (input script witness sequence prevout))
 
 (struct output (script value) #:transparent)
 ;; make-output defined to take keyword args and call the constructor

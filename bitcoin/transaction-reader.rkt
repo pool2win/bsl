@@ -28,10 +28,10 @@
   (read-little-endian-bytes (read-bytes 4 tx-port)))
 
 (define (parse-input tx-port)
-  (let* ([point (parse-point tx-port)]
+  (let* ([prevout (parse-point tx-port)]
          [script (parse-script tx-port)]
          [sequence (parse-sequence tx-port)])
-    (make-input #:script script #:witness '() #:sequence sequence #:point point)))
+    (make-input #:script script #:witness '() #:sequence sequence #:prevout prevout)))
 
 (define (parse-inputs num-inputs inputs tx-port)
   (cond
@@ -186,7 +186,7 @@
            [tx (decode-transaction tx-data)])
       (check-equal? 1 (length (transaction-inputs tx)))
       (check-equal? #"\0\1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                    (outpoint-transaction-hash (input-point (list-ref (transaction-inputs tx) 0))))
-      (check-equal? 0 (outpoint-index (input-point (list-ref (transaction-inputs tx) 0))))
+                    (outpoint-transaction-hash (input-prevout (list-ref (transaction-inputs tx) 0))))
+      (check-equal? 0 (outpoint-index (input-prevout (list-ref (transaction-inputs tx) 0))))
     )))
 
