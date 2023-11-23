@@ -1,7 +1,6 @@
 #lang errortrace racket/base
 
-(provide transaction-digest-for-signing
-         sighash-all sighash-none sighash-single sighash-anyonecanpay)
+(provide (all-defined-out))
 
 (module+ test
   (require rackunit))

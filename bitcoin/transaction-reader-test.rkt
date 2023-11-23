@@ -4,7 +4,8 @@
          file/sha1
          "transaction-reader.rkt"
          "transaction.rkt"
-         "endian-helper.rkt")
+         "endian-helper.rkt"
+         "transaction-test-macros.rkt")
 
 (test-case
     "make a transaction struct from bytes"
@@ -58,35 +59,56 @@
       (check-equal? (output-script se) (hex-string->bytes "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
       (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000"))
     )))
-  
-(test-case
-    "Native P2WPKH - signed tx example from bip0143"
-  (let* ([tx-data "01000000000102fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f00000000494830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01eeffffffef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac000247304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee0121025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee635711000000"]
-         [decoded (decode-transaction tx-data)])
-    (check-equal? (transaction-version-number decoded) 1) ;; 01000000 in little endiain is 1
-    (check-equal? (length (transaction-inputs decoded)) 2)
-    (let* ([inputs (transaction-inputs decoded)]
-           [s (list-ref inputs 0)]
-           [se (list-ref inputs 1)])
-      (check-equal? (input-sequence s) (read-little-endian-bytes (hex-string->bytes "eeffffff")))
-      (check-equal? (outpoint-transaction-hash (input-point s))
-                    (hex-string->bytes "fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"))
-      (check-equal? (outpoint-index (input-point s)) 0)
-      (check-equal? (input-witness s) '())
-      (check-equal? (bytes->hex-string (input-script s))
-                    "4830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01")
 
-      (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
-      (check-equal? (outpoint-transaction-hash (input-point se)) (hex-string->bytes "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
-      (check-equal? (outpoint-index (input-point se)) 1)
-      (check-equal? (length (input-witness se)) 2)
-      (check-equal? (bytes->hex-string (input-script se)) ""))
-    (let* ([outputs (transaction-outputs decoded)]
-          [s (list-ref outputs 0)]
-          [se (list-ref outputs 1)])
-      (check-equal? (output-script s) (hex-string->bytes "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac")) ;; drop varint prefix, 19
-      (check-equal? (output-value s) (read-little-endian-hex-string "202cb20600000000"))
+;; (test-case
+;;     "Native P2WPKH - unsigned tx example from bip0143 - using macro"
+;;   (let* ([tx-data "0100000002fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000eeffffffef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac11000000"]
+;;          [decoded (decode-transaction tx-data)])
+;;     (check-transaction-from-parts? decoded
+;;                                    (version-number 1)
+;;                                    (inputs (([sequence "eeffffff"]
+;;                                              [prevout ("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f" 0)]
+;;                                              [witness '()]
+;;                                              [script #""])
+;;                                             ([sequence "ffffffff"]
+;;                                              [prevout ("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a" 1)]
+;;                                              [witness '()]
+;;                                              [script #""])
+;;                                             )))))
+;;   ;; (outputs (([script "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac"]
+;;   ;;            [value "202cb20600000000"])
+;;   ;;           ([script "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac"]
+;;   ;;            [value "9093510d00000000"]))))))
 
-      (check-equal? (output-script se) (hex-string->bytes "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
-      (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000"))
-    )))
+  (test-case
+      "Native P2WPKH - signed tx example from bip0143"
+    (let* ([tx-data "01000000000102fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f00000000494830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01eeffffffef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac000247304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee0121025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee635711000000"]
+           [decoded (decode-transaction tx-data)])
+      (check-equal? (transaction-version-number decoded) 1) ;; 01000000 in little endiain is 1
+      (check-equal? (length (transaction-inputs decoded)) 2)
+      (let* ([inputs (transaction-inputs decoded)]
+             [s (list-ref inputs 0)]
+             [se (list-ref inputs 1)])
+        (check-equal? (input-sequence s) (read-little-endian-bytes (hex-string->bytes "eeffffff")))
+        (check-equal? (outpoint-transaction-hash (input-point s))
+                      (hex-string->bytes "fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"))
+        (check-equal? (outpoint-index (input-point s)) 0)
+        (check-equal? (input-witness s) '())
+        (check-equal? (bytes->hex-string (input-script s))
+                      "4830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01")
+
+        (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
+        (check-equal? (outpoint-transaction-hash (input-point se)) (hex-string->bytes "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
+        (check-equal? (outpoint-index (input-point se)) 1)
+        (check-equal? (length (input-witness se)) 2)
+        (check-equal? (bytes->hex-string (input-script se)) ""))
+      (let* ([outputs (transaction-outputs decoded)]
+             [s (list-ref outputs 0)]
+             [se (list-ref outputs 1)])
+        (check-equal? (output-script s) (hex-string->bytes "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac")) ;; drop varint prefix, 19
+        (check-equal? (output-value s) (read-little-endian-hex-string "202cb20600000000"))
+
+        (check-equal? (output-script se) (hex-string->bytes "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
+        (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000"))
+        ))
+    )

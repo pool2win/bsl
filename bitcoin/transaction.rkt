@@ -24,9 +24,12 @@
 (struct transaction (version-number flag inputs outputs lock-time) #:transparent)
 
 ;; make-transaction defined to take keyword args and call the constructor
-(define (make-transaction #:version-number version-number #:flag flag
-                          #:inputs inputs #:witnesses [witnesses '()]
-                          #:outputs outputs #:lock-time lock-time)
+(define (make-transaction #:version-number version-number
+                          #:flag flag
+                          #:lock-time lock-time
+                          #:inputs inputs
+                          #:witnesses [witnesses '()]
+                          #:outputs outputs)
   (for/list ([witness witnesses]
              [input inputs])
     (set-input-witness! input witness))
