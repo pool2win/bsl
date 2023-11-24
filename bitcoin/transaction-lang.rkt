@@ -1,16 +1,17 @@
 #lang racket
 
 (require (for-syntax syntax/parse))
-(require "transaction.rkt")
+(require "transaction.rkt"
+         "endian-helper.rkt")
 
 (module+ test
   (require rackunit))
 
-(define default-version-number 1)
+(define default-version-number 2) ;; we only work with version 2 transactions and up
 (define default-flag 1)
 (define default-lock-time '())
 (define default-witness '())
-(define default-input-sequence '())
+(define default-input-sequence "FFFFFFFF") ;; By default we don't use CSV
 
 (begin-for-syntax
   (define-splicing-syntax-class inputs
@@ -22,11 +23,11 @@
                 (~optional (~seq #:witness witness:expr))
                 (~optional (~seq #:script script:expr))) ...) ...)
       #:attr ip #'(for/list([s (syntax->datum #'(script ...))]
-                            [w (syntax->datum #'((~? witness default-witness) ...))]
-                            [sq (syntax->datum #'((~? sequence default-sequence) ...))]
+                            [w (syntax->datum #'((~? witness '()) ...))]
+                            [sq (syntax->datum #'((~? sequence "FFFFFFFF") ...))]
                             [h (syntax->datum #'(hash ...))]
                             [sc (syntax->datum #'(vout ...))])
-                  (input s w sq (outpoint h sc)))))
+                  (input s w (read-little-endian-hex-string sq) (outpoint h sc)))))
   
   (define-splicing-syntax-class outputs
     #:description "transaction outputs syntax class"
@@ -70,8 +71,8 @@
   (let ([tx (transaction #:lock-time 10
                          #:version-number 10
                          #:flag "g"
-                         #:inputs ((#:sequence 1 #:prevout ("abcd" 1) #:witness "w1" #:script "pkh(alice)")
-                                   (#:sequence 2 #:witness "w2" #:prevout ("hash2" 2) #:script "op2")))]) 
+                         #:inputs ((#:sequence "FFFFFFFF" #:prevout ("abcd" 1) #:witness "w1" #:script "pkh(alice)")
+                                   (#:sequence "FFFFFFFF" #:witness "w2" #:prevout ("hash2" 2) #:script "op2")))]) 
     (check-equal? (transaction-flag tx) "g")
     (check-equal? (transaction-lock-time tx) 10)
     (check-equal? (transaction-version-number  tx) 10)
@@ -79,37 +80,31 @@
     (check-equal? (input-script (list-ref (transaction-inputs tx) 0)) "pkh(alice)")
     (check-equal? (input-witness (list-ref (transaction-inputs tx) 0)) "w1")
     (check-equal? (input-prevout (list-ref (transaction-inputs tx) 0)) (outpoint "abcd" 1))
-    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 0)) 1)
+    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 0)) (read-little-endian-hex-string "FFFFFFFF"))
     
     (check-equal? (input-script (list-ref (transaction-inputs tx) 1)) "op2")
     (check-equal? (input-witness (list-ref (transaction-inputs tx) 1)) "w2")
     (check-equal? (input-prevout (list-ref (transaction-inputs tx) 1)) (outpoint "hash2" 2))
-    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) 2)
+    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) (read-little-endian-hex-string "FFFFFFFF"))
     ))
 
 (module+ test
-  (test-case "parse transactions with optional input fields not provided")
-  (let ([tx (transaction #:lock-time 10
-             #:version-number 10
-             #:flag "g"
-             #:inputs ((#:witness "w1" #:prevout ("hash1" 1) #:script "op1")
-                       (#:sequence 20 #:witness "w2" #:prevout ("hash2" 2) #:script "op2")))])
-    (check-equal? (input-witness (list-ref (transaction-inputs tx) 0)) "w1")
-    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) 20)
-    ))
+  (test-case
+   "parse transactions with optional input fields not provided"
+   (let ([tx (transaction #:lock-time 10
+                          #:version-number 10
+                          #:flag "g"
+                          #:inputs ((#:witness "w1" #:prevout ("hash1" 1) #:script "op1")
+                                    (#:sequence "EFFFFFFF" #:witness "w2" #:prevout ("hash2" 2) #:script "op2")))])
+     (check-equal? (input-witness (list-ref (transaction-inputs tx) 0)) "w1")
+     (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) (read-little-endian-hex-string "EFFFFFFF"))
+     )))
 
 (transaction #:lock-time 10
              #:version-number 10
              #:flag "g"
-             #:inputs ((#:sequence 1 #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
-                       (#:sequence 1 #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
-             #:outputs ((#:script "aa" #:amount 100) (#:script "bb" #:amount 200))
-             )
-(transaction #:lock-time 10
-             #:version-number 10
-             #:flag "g"
-             #:inputs ((#:sequence 1 #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
-                       (#:sequence 1 #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
+             #:inputs ((#:sequence "FFFFFFFF" #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
+                       (#:sequence "FFFFFFFF" #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
              #:outputs ((#:script "aa") (#:amount 200))
              )
 (transaction #:outputs ((#:script "zz") (#:amount 200.20)))
