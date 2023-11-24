@@ -32,9 +32,11 @@
   (define-splicing-syntax-class outputs
     #:description "transaction outputs syntax class"
     (pattern ((
-               (~alt
-                (~optional (~seq #:script os:expr))
-                (~optional (~seq #:amount a:expr))) ...) ...))))
+               (~seq #:script os:expr)
+               (~seq #:amount a:expr)) ...)
+      #:attr op #'(for/list ([s (syntax->datum #'(os ...))]
+                             [v (syntax->datum #'(a ...))])
+                    (output s v)))))
 
 (define-syntax (transaction stx)    
   (syntax-parse stx
@@ -50,7 +52,7 @@
             (~? (f flg) (f default-flag))
             (~? (l  lt) (l default-lock-time))
             (~? (i ins.ip) (i '()))
-            (~? (o `outs) (o '())))
+            (~? (o outs.op) (o '())))
            (make-transaction #:version-number v
                              #:flag f
                              #:lock-time l
@@ -100,11 +102,26 @@
      (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) (read-little-endian-hex-string "EFFFFFFF"))
      )))
 
-(transaction #:lock-time 10
+(module+ test
+  (test-case
+   "parse transactions with outputs"
+   (let ([tx (transaction #:lock-time 10
              #:version-number 10
              #:flag "g"
              #:inputs ((#:sequence "FFFFFFFF" #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
                        (#:sequence "FFFFFFFF" #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
-             #:outputs ((#:script "aa") (#:amount 200))
-             )
-(transaction #:outputs ((#:script "zz") (#:amount 200.20)))
+             #:outputs ((#:script "aa" #:amount 100) (#:script "bb" #:amount 200)))])
+     (check-equal? (length (transaction-outputs tx)) 2)
+     (check-equal? (output-script (list-ref (transaction-outputs tx) 0)) "aa")
+     (check-equal? (output-value (list-ref (transaction-outputs tx) 0)) 100)
+     (check-equal? (output-script (list-ref (transaction-outputs tx) 1)) "bb")
+     (check-equal? (output-value (list-ref (transaction-outputs tx) 1)) 200))))
+
+(module+ test
+  (test-case
+   "transaction with nothing but an output"
+   (let ([tx (transaction #:outputs ((#:script "zz" #:amount 200.20)))])
+     (check-equal? (length (transaction-outputs tx)) 1)
+     (check-equal? (output-script (list-ref (transaction-outputs tx) 0)) "zz")
+     (check-equal? (output-value (list-ref (transaction-outputs tx) 0)) 200.20))))
+     
