@@ -9,6 +9,8 @@
 (define default-version-number 1)
 (define default-flag 1)
 (define default-lock-time '())
+(define default-witness '())
+(define default-input-sequence '())
 
 (begin-for-syntax
   (define-splicing-syntax-class inputs
@@ -20,10 +22,10 @@
                 (~optional (~seq #:witness witness:expr))
                 (~optional (~seq #:script script:expr))) ...) ...)
       #:attr ip #'(for/list([s (syntax->datum #'(script ...))]
-                          [w (syntax->datum #'(witness ...))]
-                          [sq (syntax->datum #'(sequence ...))]
-                          [h (syntax->datum #'(hash ...))]
-                          [sc (syntax->datum #'(vout ...))])
+                            [w (syntax->datum #'((~? witness default-witness) ...))]
+                            [sq (syntax->datum #'((~? sequence default-sequence) ...))]
+                            [h (syntax->datum #'(hash ...))]
+                            [sc (syntax->datum #'(vout ...))])
                   (input s w sq (outpoint h sc)))))
   
   (define-splicing-syntax-class outputs
@@ -85,12 +87,17 @@
     (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) 2)
     ))
 
-(transaction #:lock-time 10
+(module+ test
+  (test-case "parse transactions with optional input fields not provided")
+  (let ([tx (transaction #:lock-time 10
              #:version-number 10
              #:flag "g"
-             #:inputs ((#:sequence 1 #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
-                       (#:sequence 1 #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
-             )
+             #:inputs ((#:witness "w1" #:prevout ("hash1" 1) #:script "op1")
+                       (#:sequence 20 #:witness "w2" #:prevout ("hash2" 2) #:script "op2")))])
+    (check-equal? (input-witness (list-ref (transaction-inputs tx) 0)) "w1")
+    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) 20)
+    ))
+
 (transaction #:lock-time 10
              #:version-number 10
              #:flag "g"
