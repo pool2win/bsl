@@ -3,26 +3,37 @@
 (require (for-syntax syntax/parse))
 (require "transaction.rkt")
 
+(module+ test
+  (require rackunit))
+
 (define default-version-number 1)
 (define default-flag 1)
 (define default-lock-time '())
 
-(define-syntax (transaction stx)  
+(begin-for-syntax
   (define-splicing-syntax-class inputs
-    #:description "transaction inputs"
+    #:description "transaction inputs syntax class"
     (pattern ((
                (~alt
-                (~optional (~seq #:sequence sq:expr))
-                (~optional (~seq #:prevout po:expr))
-                (~optional (~seq #:witness w:expr))
-                (~optional (~seq #:script s:expr))) ...) ...)))
+                (~optional (~seq #:sequence sequence:expr))
+                (~optional (~seq #:prevout (hash:expr vout:expr)))
+                (~optional (~seq #:witness witness:expr))
+                (~optional (~seq #:script script:expr))) ...) ...)
+      #:attr ip #'(for/list([s (syntax->datum #'(script ...))]
+                          [w (syntax->datum #'(witness ...))]
+                          [sq (syntax->datum #'(sequence ...))]
+                          [h (syntax->datum #'(hash ...))]
+                          [sc (syntax->datum #'(vout ...))])
+                  (input s w sq (outpoint h sc)))))
+  
   (define-splicing-syntax-class outputs
-    #:description "transaction outputs"
+    #:description "transaction outputs syntax class"
     (pattern ((
                (~alt
                 (~optional (~seq #:script os:expr))
-                (~optional (~seq #:amount a:expr))) ...) ...)))
-  
+                (~optional (~seq #:amount a:expr))) ...) ...))))
+
+(define-syntax (transaction stx)    
   (syntax-parse stx
     [(_
       (~alt
@@ -35,7 +46,7 @@
            ((~? (v vn) (v default-version-number))
             (~? (f flg) (f default-flag))
             (~? (l  lt) (l default-lock-time))
-            (~? (i `ins) (i '()))
+            (~? (i ins.ip) (i '()))
             (~? (o `outs) (o '())))
            (make-transaction #:version-number v
                              #:flag f
@@ -43,17 +54,36 @@
                              #:inputs i
                              #:outputs o))]))
   
+(module+ test
+  (test-case "parse transactions from the new lang")
+  (check-equal? (transaction-version-number (transaction)) default-version-number)
+  (check-equal? (transaction-flag (transaction)) default-flag)
+  (check-equal? (transaction-lock-time (transaction)) default-lock-time)
+  (check-equal? (transaction-version-number (transaction #:version-number 100)) 100)
 
-(transaction #:version-number 100)
-(transaction)
-(transaction #:flag "f")
-(transaction #:version-number 10 #:flag "g")
-(transaction #:version-number 10 #:flag "g" #:lock-time 10)
-(transaction #:lock-time 10 #:version-number 10 #:flag "g")
-(transaction #:lock-time 10
-             #:version-number 10
-             #:flag "g"
-             #:inputs ((#:sequence 1)))
+  (check-equal? (transaction-flag (transaction #:flag "f")) "f")
+  (check-equal? (transaction-version-number (transaction #:version-number 10 #:flag "g")) 10)
+  (check-equal? (transaction-flag (transaction #:version-number 10 #:flag "g")) "g")
+
+  (let ([tx (transaction #:lock-time 10
+                         #:version-number 10
+                         #:flag "g"
+                         #:inputs ((#:sequence 1 #:prevout ("abcd" 1) #:witness "w1" #:script "pkh(alice)")
+                                   (#:sequence 2 #:witness "w2" #:prevout ("hash2" 2) #:script "op2")))]) 
+    (check-equal? (transaction-flag tx) "g")
+    (check-equal? (transaction-lock-time tx) 10)
+    (check-equal? (transaction-version-number  tx) 10)
+    (check-equal? (length (transaction-inputs tx)) 2)
+    (check-equal? (input-script (list-ref (transaction-inputs tx) 0)) "pkh(alice)")
+    (check-equal? (input-witness (list-ref (transaction-inputs tx) 0)) "w1")
+    (check-equal? (input-prevout (list-ref (transaction-inputs tx) 0)) (outpoint "abcd" 1))
+    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 0)) 1)
+    
+    (check-equal? (input-script (list-ref (transaction-inputs tx) 1)) "op2")
+    (check-equal? (input-witness (list-ref (transaction-inputs tx) 1)) "w2")
+    (check-equal? (input-prevout (list-ref (transaction-inputs tx) 1)) (outpoint "hash2" 2))
+    (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) 2)
+    ))
 
 (transaction #:lock-time 10
              #:version-number 10
