@@ -30,7 +30,6 @@
                           #:inputs inputs
                           #:witnesses [witnesses '()]
                           #:outputs outputs)
-  (for/list ([witness witnesses]
-             [input inputs])
+  (for/list ([witness witnesses] [input inputs])
     (set-input-witness! input witness))
   (transaction version-number flag inputs outputs lock-time))
