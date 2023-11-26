@@ -81,11 +81,9 @@
                   #:version-number 10
                   #:flag "g"
                   #:inputs
-                  ((#:sequence "csv 10" #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
-                   (#:sequence "FFFFFFFF" #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
+                  ((#:sequence [10 days] #:witness 'w1 #:prevout ("hash1" 1) #:script "op1")
+                   (#:sequence [10 blocks] #:witness 'w2 #:prevout ("hash2" 2) #:script "op2"))
                   #:outputs ((#:script "aa" #:amount 100) (#:script "bb" #:amount 200)))])
       (check-equal? (length (transaction-outputs tx)) 2)
-      (check-equal? (output-script (list-ref (transaction-outputs tx) 0)) "aa")
-      (check-equal? (output-value (list-ref (transaction-outputs tx) 0)) 100)
-      (check-equal? (output-script (list-ref (transaction-outputs tx) 1)) "bb")
-      (check-equal? (output-value (list-ref (transaction-outputs tx) 1)) 200))))
+      (check-equal? (input-sequence (list-ref (transaction-inputs tx) 0)) 4194314)
+      (check-equal? (input-sequence (list-ref (transaction-inputs tx) 1)) 10))))

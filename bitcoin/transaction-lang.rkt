@@ -11,19 +11,19 @@
 
 (begin-for-syntax
   (define (csv-from-days d)
-    d)
+    (bitwise-ior (bitwise-and (syntax-e d) #x0000ffff) (arithmetic-shift 1 22)))
 
   (define (csv-from-blocks b)
-    b)
+    (bitwise-and (syntax-e b) #x0000ffff))
 
   (define-syntax-class sequence
     #:description "transaction sequence syntax class"
     (pattern s:string
-      #:with sq (read-little-endian-hex-string (syntax-e #'s)))
-    (pattern (s:number days)
+             #:with sq (read-little-endian-hex-string (syntax-e #'s)))
+    (pattern (s:number (~literal days))
       #:with sq (csv-from-days #'s))
-    (pattern (s:number blocks)
-      #:with sq (csv-from-blocks #'s)))
+    (pattern (s:number (~literal blocks))
+             #:with sq (csv-from-blocks #'s)))
 
   (define-splicing-syntax-class
    inputs
@@ -69,7 +69,3 @@
               (o outs.op)
               (o '())])
          (make-transaction #:version-number v #:flag f #:lock-time l #:inputs i #:outputs o))]))
-
-(tx #:inputs ((#:sequence "ff" #:script "op" #:prevout ("abcd" 1))))
-(tx #:inputs ((#:sequence [10 days] #:script "op" #:prevout ("abcd" 1))))
-(tx #:inputs ((#:sequence [100 blocks] #:script "op" #:prevout ("abcd" 1))))
