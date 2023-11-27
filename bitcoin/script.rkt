@@ -3,9 +3,11 @@
 (module+ test
   (require rackunit))
 
-(require "../crypto-utils.rkt")
+(require "../crypto-utils.rkt"
+         "script-processor/environment.rkt")
 
-(provide p2pkh-pub-script
+(provide hr-script
+         p2pkh-pub-script
          p2pkh-script-sig
          verify-stack
          verify)
@@ -20,6 +22,10 @@
 
 (define (verify script-pub-key script-sig)
   (let ([stack (list script-sig script-pub-key)]) (verify-stack stack)))
+
+(define (hr-script script env)
+  (for/list ([s script])
+    (if (is-opcode? s env) (get-hr-opcode s env) s)))
 
 (module+ test
   (test-case "Test p2pkh stack verfication"

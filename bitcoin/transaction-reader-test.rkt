@@ -4,8 +4,7 @@
          file/sha1
          "transaction-reader.rkt"
          "transaction.rkt"
-         "endian-helper.rkt"
-         "transaction-test-macros.rkt")
+         "endian-helper.rkt")
 
 (test-case "make a transaction struct from bytes"
   (let* ([tx-data
@@ -49,18 +48,18 @@
     (check-equal? (length (transaction-inputs decoded)) 2)
     (let* ([inputs (transaction-inputs decoded)] [s (list-ref inputs 0)] [se (list-ref inputs 1)])
       (check-equal? (input-sequence s) (read-little-endian-bytes (hex-string->bytes "eeffffff")))
-      (check-equal? (outpoint-transaction-hash (input-point s))
+      (check-equal? (outpoint-transaction-hash (input-prevout s))
                     (hex-string->bytes
                      "fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"))
-      (check-equal? (outpoint-index (input-point s)) 0)
+      (check-equal? (outpoint-index (input-prevout s)) 0)
       (check-equal? (input-witness s) '())
       (check-equal? (input-script s) #"")
 
       (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
-      (check-equal? (outpoint-transaction-hash (input-point se))
+      (check-equal? (outpoint-transaction-hash (input-prevout se))
                     (hex-string->bytes
                      "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
-      (check-equal? (outpoint-index (input-point se)) 1)
+      (check-equal? (outpoint-index (input-prevout se)) 1)
       (check-equal? (input-witness se) '())
       (check-equal? (input-script se) #""))
     (let* ([outputs (transaction-outputs decoded)] [s (list-ref outputs 0)] [se (list-ref outputs 1)])
@@ -102,20 +101,20 @@
     (check-equal? (length (transaction-inputs decoded)) 2)
     (let* ([inputs (transaction-inputs decoded)] [s (list-ref inputs 0)] [se (list-ref inputs 1)])
       (check-equal? (input-sequence s) (read-little-endian-bytes (hex-string->bytes "eeffffff")))
-      (check-equal? (outpoint-transaction-hash (input-point s))
+      (check-equal? (outpoint-transaction-hash (input-prevout s))
                     (hex-string->bytes
                      "fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"))
-      (check-equal? (outpoint-index (input-point s)) 0)
+      (check-equal? (outpoint-index (input-prevout s)) 0)
       (check-equal? (input-witness s) '())
       (check-equal?
        (bytes->hex-string (input-script s))
        "4830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01")
 
       (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
-      (check-equal? (outpoint-transaction-hash (input-point se))
+      (check-equal? (outpoint-transaction-hash (input-prevout se))
                     (hex-string->bytes
                      "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
-      (check-equal? (outpoint-index (input-point se)) 1)
+      (check-equal? (outpoint-index (input-prevout se)) 1)
       (check-equal? (length (input-witness se)) 2)
       (check-equal? (bytes->hex-string (input-script se)) ""))
     (let* ([outputs (transaction-outputs decoded)] [s (list-ref outputs 0)] [se (list-ref outputs 1)])

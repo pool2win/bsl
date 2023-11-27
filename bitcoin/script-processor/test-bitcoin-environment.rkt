@@ -706,88 +706,88 @@
         (check-equal? script '(#"AAA" #"BBB"))
         (check-equal? verified #t))
 
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(0) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #t))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(-1) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '() '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence #xffffffff #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence #xffffffff #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(0) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 50) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 101) 0)])
         (check-equal? verified #t))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 500000001) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checklocktimeverify '(#"AAA" #"BBB") bitcoin-env '(500000001) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 100) 0)])
         (check-equal? verified #f))
 
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '() '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(-1) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 0 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
                                    (make-transaction #:version-number 0 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 2147483649 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 2147483649 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
                                    (make-transaction #:version-number 2 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(4194305) '()
                                    (make-transaction #:version-number 2 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 4194305 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 4194305 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(100) '()
                                    (make-transaction #:version-number 2 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(4194305) '()
                                    (make-transaction #:version-number 2 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(99) '()
                                    (make-transaction #:version-number 2 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])
         (check-equal? verified #f))
-      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:point '())]
+      (let*-values ([(test-input) (make-input #:script '() #:witness '() #:sequence 100 #:prevout '())]
                     [(script stack altstack verified)
                      (apply-opcode 'op_checksequenceverify '(#"AAA" #"BBB") bitcoin-env '(101) '()
                                    (make-transaction #:version-number 2 #:flag 0 #:inputs (list test-input) #:outputs '() #:lock-time 0) 0)])

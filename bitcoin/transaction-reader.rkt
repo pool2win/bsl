@@ -1,8 +1,9 @@
 #lang errortrace racket/base
 
 (require file/sha1
-         "transaction.rkt"
          "endian-helper.rkt"
+         "script-reader.rkt"
+         "transaction.rkt"
          "varint-reader.rkt")
 
 (provide decode-transaction)
@@ -21,7 +22,7 @@
     (outpoint tx-hash index)))
 
 (define (parse-script tx-port)
-  (read-bytes (read-varint-value tx-port) tx-port))
+  (parse-script-from-bytes (read-bytes (read-varint-value tx-port) tx-port)))
 
 (define (parse-sequence tx-port)
   (read-little-endian-bytes (read-bytes 4 tx-port)))
