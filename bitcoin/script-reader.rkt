@@ -22,8 +22,6 @@
 
 (define (parse-script in-port [script '()])
   (let ([next-byte (read-bytes 1 in-port)])
-    ;;(printf "~s\n" (hr-script script env))
-    (println script)
     (cond
       [(eof-object? next-byte) script]
       [(not (is-opcode? (read-little-endian-bytes next-byte) env))
@@ -42,5 +40,4 @@
     (let* ([script (parse-script (open-input-bytes
                                   (hex-string->bytes
                                    "76A91489ABCDEFABBAABBAABBAABBAABBAABBAABBAABBA88AC")))])
-      (printf "~s\n" (hr-script script env))
       (check-equal? (list-ref script 0) #x76))))

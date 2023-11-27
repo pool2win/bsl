@@ -23,7 +23,7 @@
 
 (define (digest-prevouts tx index [sighash 'all])
   (bytes-append* (for/list ([input (transaction-inputs tx)])
-                   (digest-outpoint (input-point input)))))
+                   (digest-outpoint (input-prevout input)))))
 
 (define (digest-sequences tx)
   (bytes-append* (for/list ([input (transaction-inputs tx)])
@@ -59,7 +59,7 @@
 
 (define (serialize-outpoint tx index)
   ;; depends on sighash?
-  (digest-outpoint (input-point (list-ref (transaction-inputs tx) index))))
+  (digest-outpoint (input-prevout (list-ref (transaction-inputs tx) index))))
 
 (define (serialize-amount amount)
   (to-little-endian-n-bytes amount 8))
@@ -101,7 +101,7 @@
            [test-inputs (list (make-input #:script '(script elements)
                                           #:witness '()
                                           #:sequence 1
-                                          #:point test-prevout))]
+                                          #:prevout test-prevout))]
            [test-outputs (list (output '(script elements) 100))]
            [test-transaction (make-transaction #:version-number 1
                                                #:flag 0
