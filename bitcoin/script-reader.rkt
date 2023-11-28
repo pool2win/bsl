@@ -11,7 +11,13 @@
 (define env (make-bitcoin-environment))
 
 (define (parse-script-args in-port opcode)
-  (if (and (>= opcode 1) (<= opcode 75)) (read-bytes opcode in-port) '()))
+  (let ([reader (lambda (num-bytes) (list num-bytes (read-bytes num-bytes in-port)))])
+    (cond
+      [(and (>= opcode #x01) (<= opcode #x4b)) (list (read-bytes opcode in-port))]
+      [(= opcode #x4c) (reader (read-little-endian-bytes (read-bytes 1 in-port)))]
+      [(= opcode #x4d) (reader (read-little-endian-bytes (read-bytes 2 in-port)))]
+      [(= opcode #x4e) (reader (read-little-endian-bytes (read-bytes 4 in-port)))]
+      [else '()])))
 
 (define (parse-script-from-bytes in-bytes)
   (parse-script (open-input-bytes in-bytes)))
@@ -29,4 +35,4 @@
               [script-args (parse-script-args in-port opcode)])
          (parse-script
           in-port
-          (append script (if (equal? script-args '()) (list opcode) (list opcode script-args)))))])))
+          (append script (if (equal? script-args '()) (list opcode) (cons opcode script-args)))))])))
