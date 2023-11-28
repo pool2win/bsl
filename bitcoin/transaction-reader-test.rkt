@@ -13,7 +13,7 @@
     (check-equal? (transaction-version-number decoded) 3307961488)
     (check-equal?
      (list-ref (transaction-inputs decoded) 0)
-     (input #"\253e\253\253"
+     (input '(171 #"\253\253")
             '()
             3717931005
             (outpoint
@@ -22,7 +22,7 @@
     (check-equal?
      (list-ref (transaction-inputs decoded) 1)
      (input
-      #"j\253RS\253R\0\0R"
+      '(106 171 82 83 171 82 0 0 82)
       '()
       1596654765
       (outpoint
@@ -30,14 +30,14 @@
        2)))
     (check-equal?
      (list-ref (transaction-inputs decoded) 2)
-     (input #"\253SRe\0cjR\253"
+     (input '(171 83 82 #"\0cjR\253")
             '()
             4274166361
             (outpoint
              #"%\357\263;\356\311\3636N\212\2219\350C\235\235~&R\234<0\266\303\375\211\370hL\375h\352"
              2)))
-    (check-equal? (list-ref (transaction-outputs decoded) 0) (output #"SS\0QcRQQ" 82650789))
-    (check-equal? (list-ref (transaction-outputs decoded) 1) (output #"\0c\0" 17708900))
+    (check-equal? (list-ref (transaction-outputs decoded) 0) (output '(83 83 0 81 99 82 81 81) 82650789))
+    (check-equal? (list-ref (transaction-outputs decoded) 1) (output '(0 99 0)  17708900))
     (check-equal? (transaction-lock-time decoded) 700591787)))
 
 (test-case "Native P2WPKH - unsigned tx example from bip0143"
@@ -53,7 +53,7 @@
                      "fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"))
       (check-equal? (outpoint-index (input-prevout s)) 0)
       (check-equal? (input-witness s) '())
-      (check-equal? (input-script s) #"")
+      (check-equal? (input-script s) '())
 
       (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
       (check-equal? (outpoint-transaction-hash (input-prevout se))
@@ -61,7 +61,7 @@
                      "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
       (check-equal? (outpoint-index (input-prevout se)) 1)
       (check-equal? (input-witness se) '())
-      (check-equal? (input-script se) #""))
+      (check-equal? (input-script se) '()))
     (let* ([outputs (transaction-outputs decoded)] [s (list-ref outputs 0)] [se (list-ref outputs 1)])
       (check-equal? (output-script s)
                     (hex-string->bytes
@@ -107,8 +107,7 @@
       (check-equal? (outpoint-index (input-prevout s)) 0)
       (check-equal? (input-witness s) '())
       (check-equal?
-       (bytes->hex-string (input-script s))
-       "4830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01")
+       ((input-script s) "4830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01"))
 
       (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
       (check-equal? (outpoint-transaction-hash (input-prevout se))

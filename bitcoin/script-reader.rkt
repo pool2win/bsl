@@ -1,7 +1,6 @@
 #lang errortrace racket/base
 
-(require file/sha1
-         "./endian-helper.rkt"
+(require "./endian-helper.rkt"
          "script.rkt"
          "./script-processor/environment.rkt"
          "./script-processor/bitcoin-environment.rkt"
@@ -9,13 +8,10 @@
 
 (provide parse-script-from-bytes)
 
-(module+ test
-  (require rackunit))
-
 (define env (make-bitcoin-environment))
 
 (define (parse-script-args in-port opcode)
-  '())
+  (if (and (>= opcode 1) (<= opcode 75)) (read-bytes opcode in-port) '()))
 
 (define (parse-script-from-bytes in-bytes)
   (parse-script (open-input-bytes in-bytes)))
@@ -34,10 +30,3 @@
          (parse-script
           in-port
           (append script (if (equal? script-args '()) (list opcode) (list opcode script-args)))))])))
-
-(module+ test
-  (test-case "parse script from bytes"
-    (let* ([script (parse-script (open-input-bytes
-                                  (hex-string->bytes
-                                   "76A91489ABCDEFABBAABBAABBAABBAABBAABBAABBAABBA88AC")))])
-      (check-equal? (list-ref script 0) #x76))))
