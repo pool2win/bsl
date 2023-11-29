@@ -36,8 +36,9 @@
             (outpoint
              #"%\357\263;\356\311\3636N\212\2219\350C\235\235~&R\234<0\266\303\375\211\370hL\375h\352"
              2)))
-    (check-equal? (list-ref (transaction-outputs decoded) 0) (output '(83 83 0 81 99 82 81 81) 82650789))
-    (check-equal? (list-ref (transaction-outputs decoded) 1) (output '(0 99 0)  17708900))
+    (check-equal? (list-ref (transaction-outputs decoded) 0)
+                  (output '(83 83 0 81 99 82 81 81) 82650789))
+    (check-equal? (list-ref (transaction-outputs decoded) 1) (output '(0 99 0) 17708900))
     (check-equal? (transaction-lock-time decoded) 700591787)))
 
 (test-case "Native P2WPKH - unsigned tx example from bip0143"
@@ -64,13 +65,19 @@
       (check-equal? (input-script se) '()))
     (let* ([outputs (transaction-outputs decoded)] [s (list-ref outputs 0)] [se (list-ref outputs 1)])
       (check-equal? (output-script s)
-                    (hex-string->bytes
-                     "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac")) ;; drop varint prefix, 19
+                    `(#x76 #xa9
+                           #x14
+                           ,(hex-string->bytes "8280b37df378db99f66f85c95a783a76ac7a6d59")
+                           #x88
+                           #xac)) ;; drop varint prefix, 19
       (check-equal? (output-value s) (read-little-endian-hex-string "202cb20600000000"))
 
       (check-equal? (output-script se)
-                    (hex-string->bytes
-                     "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
+                    `(#x76 #xa9
+                           #x14
+                           ,(hex-string->bytes "3bde42dbee7e4dbe6a21b2d50ce2f0167faa8159")
+                           #x88
+                           #xac)) ;; drop varint prefix, 19
       (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000")))))
 
 ;; (test-case
@@ -107,7 +114,10 @@
       (check-equal? (outpoint-index (input-prevout s)) 0)
       (check-equal? (input-witness s) '())
       (check-equal?
-       ((input-script s) "4830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01"))
+       (input-script s)
+       `(#x48
+         ,(hex-string->bytes
+           "30450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01")))
 
       (check-equal? (input-sequence se) (read-little-endian-bytes (hex-string->bytes "ffffffff")))
       (check-equal? (outpoint-transaction-hash (input-prevout se))
@@ -115,14 +125,20 @@
                      "ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"))
       (check-equal? (outpoint-index (input-prevout se)) 1)
       (check-equal? (length (input-witness se)) 2)
-      (check-equal? (bytes->hex-string (input-script se)) ""))
+      (check-equal? (input-script se) '()))
     (let* ([outputs (transaction-outputs decoded)] [s (list-ref outputs 0)] [se (list-ref outputs 1)])
       (check-equal? (output-script s)
-                    (hex-string->bytes
-                     "76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac")) ;; drop varint prefix, 19
+                    `(#x76 #xa9
+                           #x14
+                           ,(hex-string->bytes "8280b37df378db99f66f85c95a783a76ac7a6d59")
+                           #x88
+                           #xac)) ;; drop varint prefix, 19
       (check-equal? (output-value s) (read-little-endian-hex-string "202cb20600000000"))
 
       (check-equal? (output-script se)
-                    (hex-string->bytes
-                     "76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac")) ;; drop varint prefix, 19
+                    `(#x76 #xa9
+                           #x14
+                           ,(hex-string->bytes "3bde42dbee7e4dbe6a21b2d50ce2f0167faa8159")
+                           #x88
+                           #xac)) ;; drop varint prefix, 19
       (check-equal? (output-value se) (read-little-endian-hex-string "9093510d00000000")))))

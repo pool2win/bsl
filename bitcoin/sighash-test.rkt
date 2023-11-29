@@ -14,7 +14,7 @@
            [test-inputs (list (make-input #:script '(script elements)
                                           #:witness '()
                                           #:sequence 1
-                                          #:point test-prevout))]
+                                          #:prevout test-prevout))]
            [test-outputs (list (output '(script elements) 100))]
            [test-transaction (make-transaction #:version-number 1
                                                #:flag 0
