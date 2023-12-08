@@ -5,10 +5,15 @@
 (provide to-little-endian-n-bytes
          read-little-endian-bytes
          read-little-endian-hex-string
-         to-little-endian-hex-string)
+         to-little-endian-hex-string
+         to-n-bytes)
 
 (module+ test
   (require rackunit))
+
+;; Return number as big endian bytes
+(define (to-n-bytes value num_bytes)
+  (integer->integer-bytes value num_bytes #f))
 
 (define (to-little-endian-n-bytes value num_bytes)
   (let ([signed #f] [big-endian #f]) (integer->integer-bytes value num_bytes signed big-endian)))
@@ -34,4 +39,8 @@
   (test-case "read little endian 4 bytes"
     (check-equal? (read-little-endian-bytes #"\1\0\0\0") 1))
   (test-case "convert integer to hex string"
-    (check-equal? (to-little-endian-hex-string 255 4) "ff000000")))
+    (check-equal? (to-little-endian-hex-string 255 4) "ff000000"))
+  (test-case "convert integer to big endian bytes"
+    (check-equal? (to-n-bytes 255 1) #"\377"))
+  (test-case "convert integer to big endian bytes"
+    (check-equal? (to-n-bytes 255 4) #"\377\0\0\0")))
