@@ -1,6 +1,7 @@
-#lang errortrace racket/base
+#lang errortrace racket
 
-(require "environment.rkt"
+(require json
+         "environment.rkt"
          "bitcoin-environment.rkt"
          "eval-script.rkt"
          "../transaction.rkt"
