@@ -27,7 +27,7 @@
       (check-equal? '(4 3 2 1 3) (jump-to-after 3 lst))
       (check-equal? '() (jump-to-after 100 lst)))))
 
-(define (handle-conditional opcode env script stack altstack)
+(define (handle-conditional opcode env script stack altstack condstack)
   (printf "In handle condition ~a ~a\n" script stack)
   (cond
     [(or (and (equal? opcode 'op_if) (= (first stack) 1))
@@ -37,9 +37,9 @@
          (and (equal? opcode 'op_notif) (= (first stack) 1)))
      (eval-script (jump-to-after 'op_else script) env (rest stack) altstack)]
     ;; return values of rest script after end, stack, altstack, verified as is the current status
-    [(equal? opcode 'op_else) (eval-script (jump-to-after 'op_endif script) env stack altstack)]
+    [(equal? opcode 'op_else) (eval-script (jump-to-after 'op_endif script) env stack altstack condstack)]
     ;; return values of rest script, stack, altstack, verified as is the current status
-    [(equal? opcode 'op_endif) (eval-script script env stack altstack)]))
+    [(equal? opcode 'op_endif) (eval-script script env stack altstack condstack)]))
 
 (define (make-bitcoin-environment)
   (let ([env (make-initial-env)]
@@ -49,532 +49,542 @@
     (add-opcode env
                 '(op_0 op_false)
                 #x00
-                (lambda (script stack altstack tx input-index)
-                  (values script (cons 0 stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values script (cons 0 stack) altstack condstack #t)))
     (for ([code (in-inclusive-range 1 75)])
       (add-opcode env
                   (list (string->symbol (string-join `("op_" ,(~a code)) "")))
                   code
-                  (lambda (script stack altstack tx input-index)
-                    (values (safe-tail script 1) (cons (safe-head script 1) stack) altstack #t))))
+                  (lambda (script stack altstack condstack tx input-index)
+                    (values (safe-tail script 1) (cons (safe-head script 1) stack) altstack condstack #t))))
     (add-opcode env
                 '(op_pushdata1)
                 #x4c
-                (lambda (script stack altstack tx input-index)
-                  (values (safe-tail script 2) (cons (second script) stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values (safe-tail script 2) (cons (second script) stack) altstack condstack #t)))
     (add-opcode env
                 '(op_pushdata2)
                 #x4d
-                (lambda (script stack altstack tx input-index)
-                  (values (safe-tail script 2) (cons (second script) stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values (safe-tail script 2) (cons (second script) stack) altstack condstack #t)))
     (add-opcode env
                 '(op_pushdata4)
                 #x4e
-                (lambda (script stack altstack tx input-index)
-                  (values (safe-tail script 2) (cons (second script) stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values (safe-tail script 2) (cons (second script) stack) altstack condstack #t)))
     (add-opcode env
                 '(op_1negate)
                 #x4f
-                (lambda (script stack altstack tx input-index)
-                  (values script (cons -1 stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values script (cons -1 stack) altstack condstack #t)))
     (add-opcode env
                 '(op_1 op_true)
                 #x51
-                (lambda (script stack altstack tx input-index) ;
-                  (values script (cons 1 stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index) ;
+                  (values script (cons 1 stack) altstack condstack #t)))
     (for ([code (in-inclusive-range #x52 #x60)])
       (add-opcode env
                   (list (string->symbol (string-join `("op_" ,(~a (- code 80))) "")))
                   code
-                  (lambda (script stack altstack tx input-index)
-                    (values script (cons (- code 80) stack) altstack #t))))
+                  (lambda (script stack altstack condstack tx input-index)
+                    (values script (cons (- code 80) stack) altstack condstack #t))))
     (add-opcode env
                 '(op_nop)
                 #x61
-                (lambda (script stack altstack tx input-index) (values script stack altstack #t)))
+                (lambda (script stack altstack condstack tx input-index) (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_if)
                 #x63
-                (lambda (script stack altstack tx input-index)
-                  (handle-conditional 'op_if env script stack altstack)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (handle-conditional 'op_if env script stack altstack condstack)))
     (add-opcode env
                 '(op_notif)
                 #x64
-                (lambda (script stack altstack tx input-index)
-                  (handle-conditional 'op_notif env script stack altstack)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (handle-conditional 'op_notif env script stack altstack condstack)))
     (add-opcode env
                 '(op_else)
                 #x67
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (handle-conditional 'op_else
                                       env
                                       script
                                       stack
-                                      altstack))) ;; (values script stack altstack #t)))
+                                      altstack
+                                      condstack))) ;; (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_endif)
                 #x68
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (handle-conditional 'op_endif
                                       env
                                       script
                                       stack
-                                      altstack))) ;; (values script stack altstack #t)))
+                                      altstack
+                                      condstack))) ;; (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_verify)
                 #x69
-                (lambda (script stack altstack tx input-index)
-                  (values script stack altstack (eq? (first stack) 1))))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values script stack altstack condstack (eq? (first stack) 1))))
     (add-opcode env
                 '(op_return)
                 #x6a
-                (lambda (script stack altstack tx input-index) (values script stack altstack #f)))
+                (lambda (script stack altstack condstack tx input-index) (values script stack altstack condstack #f)))
     ;; stack operations
     (add-opcode env
                 '(op_toaltstack)
                 #x6b
-                (lambda (script stack altstack tx input-index)
-                  (values script (rest stack) (cons (first stack) altstack) #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values script (rest stack) (cons (first stack) altstack condstack) #t)))
     (add-opcode env
                 '(op_fromaltstack)
                 #x6c
-                (lambda (script stack altstack tx input-index)
-                  (values script (cons (first altstack) stack) (rest altstack) #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values script (cons (first altstack) stack) (rest altstack) condstack #t)))
     (add-opcode
      env
      '(op_ifdup)
      #x73
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(not (eq? (first stack) 0)) (values script (cons (first stack) stack) altstack #t)]
-         [else (values script stack altstack #t)])))
+         [(not (eq? (first stack) 0)) (values script (cons (first stack) stack) altstack condstack #t)]
+         [else (values script stack altstack condstack #t)])))
     (add-opcode env
                 '(op_depth)
                 #x74
-                (lambda (script stack altstack tx input-index)
-                  (values script (cons (length stack) stack) altstack #t)))
+                (lambda (script stack altstack condstack tx input-index)
+                  (values script (cons (length stack) stack) altstack condstack #t)))
     (add-opcode env
                 '(op_drop)
                 #x75
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (rest stack) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (rest stack) altstack condstack #t)])))
     (add-opcode env
                 '(op_dup)
                 #x76
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (first stack) stack) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (first stack) stack) altstack condstack #t)])))
     (add-opcode env
                 '(op_nip)
                 #x77
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (first stack) (safe-tail stack 2)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (first stack) (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode env
                 '(op_over)
                 #x78
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
+                    [(empty? stack) (values script stack altstack condstack #t)]
                     [else
                      (values script
                              (append (list (second stack) (first stack)) (safe-tail stack 2))
                              altstack
+                             condstack
                              #t)])))
     (add-opcode
      env
      '(op_pick)
      #x79
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(empty? stack) (values script stack altstack #t)]
+         [(empty? stack) (values script stack altstack condstack #t)]
          [else
-          (values script (cons (list-ref stack (add1 (first stack))) (rest stack)) altstack #t)])))
+          (values script (cons (list-ref stack (add1 (first stack))) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_roll)
                 #x7a
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
+                    [(empty? stack) (values script stack altstack condstack #t)]
                     [else
                      (let* ([posn (first stack)] [stack (rest stack)])
                        (values script
                                (append (cons (list-ref stack posn) (take stack posn))
                                        (safe-tail stack (add1 posn)))
                                altstack
+                               condstack
                                #t))])))
     (add-opcode env
                 '(op_rot)
                 #x7b
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 3) (values script stack altstack #t)]
+                    [(< (length stack) 3) (values script stack altstack condstack #t)]
                     [else
                      (let ([posn 3])
                        (values script
                                (append (cons (list-ref stack posn) (take stack posn))
                                        (safe-tail stack (add1 posn)))
                                altstack
+                               condstack
                                #t))])))
     (add-opcode env
                 '(op_swap)
                 #x7c
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [else
                      (values script
                              (append (list (list-ref stack 1) (list-ref stack 0)) (safe-tail stack 2))
                              altstack
+                             condstack
                              #t)])))
     (add-opcode env
                 '(op_tuck)
                 #x7d
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [else
                      (values script
                              (append (take stack 2) (list (first stack)) (safe-tail stack 2))
                              altstack
+                             condstack
                              #t)])))
     (add-opcode env
                 '(op_2drop)
                 #x6d
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
-                    [else (values script (safe-tail stack 2) altstack #t)])))
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
+                    [else (values script (safe-tail stack 2) altstack condstack #t)])))
     (add-opcode env
                 '(op_2dup)
                 #x6e
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
-                    [else (values script (append (take stack 2) stack) altstack #t)])))
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
+                    [else (values script (append (take stack 2) stack) altstack condstack #t)])))
     (add-opcode env
                 '(op_3dup)
                 #x6f
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 3) (values script stack altstack #t)]
-                    [else (values script (append (take stack 3) stack) altstack #t)])))
+                    [(< (length stack) 3) (values script stack altstack condstack #t)]
+                    [else (values script (append (take stack 3) stack) altstack condstack #t)])))
     (add-opcode
      env
      '(op_2over)
      #x6f
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 4) (values script stack altstack #t)]
+         [(< (length stack) 4) (values script stack altstack condstack #t)]
          [else
-          (values script (append (list (list-ref stack 2) (list-ref stack 3)) stack) altstack #t)])))
+          (values script (append (list (list-ref stack 2) (list-ref stack 3)) stack) altstack condstack #t)])))
     (add-opcode env
                 '(op_2rot)
                 #x71
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 6) (values script stack altstack #t)]
+                    [(< (length stack) 6) (values script stack altstack condstack #t)]
                     [else
                      (values script
                              (append (list (list-ref stack 4) (list-ref stack 5))
                                      (take stack 4)
                                      (safe-tail stack 6))
                              altstack
+                             condstack
                              #t)])))
     (add-opcode env
                 '(op_2swap)
                 #x72
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 4) (values script stack altstack #t)]
+                    [(< (length stack) 4) (values script stack altstack condstack #t)]
                     [else
                      (values script
                              (append (take (safe-tail stack 2) 2) (take stack 2) (safe-tail stack 4))
                              altstack
+                             condstack
                              #t)])))
     (add-opcode env
                 '(op_size)
                 #x82
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (string-length (first stack)) stack) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (string-length (first stack)) stack) altstack condstack #t)])))
     (add-opcode env
                 '(op_equal)
                 #x87
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [else
                      (values script
                              (cons (equal? (first stack) (second stack)) (safe-tail stack 2))
                              altstack
+                             condstack
                              #t)])))
     (add-opcode
      env
      '(op_equalverify)
      #x88
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #f)]
-         [else (values script (safe-tail stack 2) altstack (equal? (first stack) (second stack)))])))
+         [(< (length stack) 2) (values script stack altstack condstack #f)]
+         [else (values script (safe-tail stack 2) altstack condstack (equal? (first stack) (second stack)))])))
     (add-opcode env
                 '(op_1add)
                 #x8b
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (add1 (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (add1 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_1sub)
                 #x8c
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (sub1 (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (sub1 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_negate)
                 #x8f
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (* -1 (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (* -1 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_abs)
                 #x90
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (abs (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (abs (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_not)
                 #x91
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [(equal? 0 (first stack)) (values script (cons 1 (rest stack)) altstack #t)]
-                    [else (values script (cons 0 (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [(equal? 0 (first stack)) (values script (cons 1 (rest stack)) altstack condstack #t)]
+                    [else (values script (cons 0 (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_0notequal)
                 #x92
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [(equal? 0 (first stack)) (values script (cons 0 (rest stack)) altstack #t)]
-                    [else (values script (cons 1 (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [(equal? 0 (first stack)) (values script (cons 0 (rest stack)) altstack condstack #t)]
+                    [else (values script (cons 1 (rest stack)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_add)
      #x93
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [else
-          (values script (cons (+ (first stack) (second stack)) (safe-tail stack 2)) altstack #t)])))
+          (values script (cons (+ (first stack) (second stack)) (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_sub)
      #x94
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [else
-          (values script (cons (- (first stack) (second stack)) (safe-tail stack 2)) altstack #t)])))
+          (values script (cons (- (first stack) (second stack)) (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode env
                 '(op_booland)
                 #x9a
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [(and (not (equal? (first stack) 0)) (not (equal? (second stack) 0)))
-                     (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+                     (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+                    [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode env
                 '(op_boolor)
                 #x9b
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [(or (not (equal? (first stack) 0)) (not (equal? (second stack) 0)))
-                     (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+                     (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+                    [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_numequal)
      #x9c
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (equal? (first stack) (second stack)))
-          (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+          (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_numequalverify)
      #x9d
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (equal? (first stack) (second stack)))
-          (values script (safe-tail stack 2) altstack #t)]
-         [else (values script (safe-tail stack 2) altstack #f)])))
+          (values script (safe-tail stack 2) altstack condstack #t)]
+         [else (values script (safe-tail stack 2) altstack condstack #f)])))
     (add-opcode env
                 '(op_numnotequal)
                 #x9e
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 2) (values script stack altstack #t)]
+                    [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [(or (not (number? (first stack)))
                          (not (number? (second stack)))
                          (not (equal? (first stack) (second stack))))
-                     (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+                     (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+                    [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_lessthan)
      #x9f
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (< (second stack) (first stack)))
-          (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+          (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_greaterthan)
      #xa0
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (> (second stack) (first stack)))
-          (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+          (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_lessthanorequal)
      #xa1
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
-          (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+          (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_greaterthanorequal)
      #xa2
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (>= (second stack) (first stack)))
-          (values script (cons 1 (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack #t)])))
+          (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_min)
      #xa3
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
-          (values script (cons (second stack) (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons (first stack) (safe-tail stack 2)) altstack #t)])))
+          (values script (cons (second stack) (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons (first stack) (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_max)
      #xa4
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(< (length stack) 2) (values script stack altstack #t)]
+         [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
-          (values script (cons (first stack) (safe-tail stack 2)) altstack #t)]
-         [else (values script (cons (second stack) (safe-tail stack 2)) altstack #t)])))
+          (values script (cons (first stack) (safe-tail stack 2)) altstack condstack #t)]
+         [else (values script (cons (second stack) (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode env
                 '(op_within)
                 #xa4
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(< (length stack) 3) (values script stack altstack #t)]
+                    [(< (length stack) 3) (values script stack altstack condstack #t)]
                     [(and (number? (first stack))
                           (number? (second stack))
                           (number? (third stack))
                           (<= (third stack) (first stack))
                           (>= (third stack) (second stack)))
-                     (values script (cons 1 (safe-tail stack 3)) altstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 3)) altstack #t)])))
+                     (values script (cons 1 (safe-tail stack 3)) altstack condstack #t)]
+                    [else (values script (cons 0 (safe-tail stack 3)) altstack condstack #t)])))
 
     ;; crypto opcodes
     (add-opcode
      env
      '(op_ripemd160)
      #xa6
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(empty? stack) (values script stack altstack #t)]
-         [else (values script (cons (ripemd160 (first stack)) (rest stack)) altstack #t)])))
+         [(empty? stack) (values script stack altstack condstack #t)]
+         [else (values script (cons (ripemd160 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_sha1)
                 #xa7
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (sha1 (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (sha1 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_sha256)
                 #xa8
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (sha256 (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (sha256 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_hash160)
                 #xa9
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(empty? stack) (values script stack altstack #t)]
-                    [else (values script (cons (hash160 (first stack)) (rest stack)) altstack #t)])))
+                    [(empty? stack) (values script stack altstack condstack #t)]
+                    [else (values script (cons (hash160 (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_hash256)
      #xaa
-     (lambda (script stack altstack tx input-index)
+     (lambda (script stack altstack condstack tx input-index)
        (cond
-         [(empty? stack) (values script stack altstack #t)]
-         [else (values script (cons (double-sha256-hash (first stack)) (rest stack)) altstack #t)])))
+         [(empty? stack) (values script stack altstack condstack #t)]
+         [else (values script (cons (double-sha256-hash (first stack)) (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_codeseparator)
                 #xab
-                (lambda (script stack altstack tx input-index) (values script stack altstack #t)))
+                (lambda (script stack altstack condstack tx input-index) (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_checksig)
                 #xac
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   ;; TODO - use checksig implementation
-                  (values script stack altstack #t)))
+                  (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_checksig)
                 #xad
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   ;; TODO - use checksig implementation
-                  (values script stack altstack #t)))
+                  (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_checkmultisig)
                 #xae
-                (lambda (script stack altstack tx input-index) (values script stack altstack #t)))
+                (lambda (script stack altstack condstack tx input-index) (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_checkmultisigverify)
                 #xaf
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   ;; TODO - use checksig implementation
-                  (values script stack altstack #t)))
+                  (values script stack altstack condstack #t)))
     (add-opcode env
                 '(op_checklocktimeverify)
                 #xb1
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (cond
                     [(or (empty? stack)
                          (negative? (first stack))
@@ -585,12 +595,12 @@
                          (equal? #xffffffff
                                  (input-sequence (list-ref (transaction-inputs tx) input-index)))
                          (> (first stack) (transaction-lock-time tx)))
-                     (values script stack altstack #f)]
-                    [else (values script stack altstack #t)])))
+                     (values script stack altstack condstack #f)]
+                    [else (values script stack altstack condstack #t)])))
     (add-opcode env
                 '(op_checksequenceverify)
                 #xb2
-                (lambda (script stack altstack tx input-index)
+                (lambda (script stack altstack condstack tx input-index)
                   (let ([disabled-flag (arithmetic-shift 1 31)]
                         [sequence-type-flag (arithmetic-shift 1 22)]
                         [sequence-locktime-mask #x0000ffff]
@@ -604,8 +614,8 @@
                                     (not (= (bitwise-and (first stack) sequence-type-flag)
                                             (bitwise-and sequence sequence-type-flag)))
                                     (<= (first stack) sequence))))
-                       (values script stack altstack #f)]
-                      [else (values script stack altstack #t)]))))
+                       (values script stack altstack condstack #f)]
+                      [else (values script stack altstack condstack #t)]))))
     (for ([opcode-hex '(#x50 #x62 #x65 #x66 #x89 #x8a #x0ba #xb3 #xb4 #xb5 #xb6 #xb7 #xb8 #xb9)]
           [opcode '(op_reserved op_ver
                                 op_verif
@@ -624,7 +634,7 @@
       (add-opcode env
                   (list opcode)
                   opcode-hex
-                  (lambda (script stack altstack tx input-index)
+                  (lambda (script stack altstack condstack tx input-index)
                     ;; The reserved words simply set the transaction validity
-                    (values script stack altstack validity))))
+                    (values script stack altstack condstack validity))))
     env))

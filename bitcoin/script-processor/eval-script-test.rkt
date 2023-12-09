@@ -29,7 +29,7 @@
            [env (make-bitcoin-environment)]
            [run-test (lambda (c)
                        (println c)
-                       (let-values ([(script stack altstack verified)
+                       (let-values ([(script stack altstack condstack verified)
                                      (eval-script-from-bytes
                                       (serialized-script (string-append (first c) " " (second c)) env)
                                       env
