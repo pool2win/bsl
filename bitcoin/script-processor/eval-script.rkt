@@ -9,6 +9,14 @@
          eval-script
          eval-script-from-bytes)
 
+;; apply an opcode only if it is a conditional opcode or there are no 0s in condstack
+(define (apply? opcode condstack env)
+  (or (opcode-equal? opcode 'op_if env)
+      (opcode-equal? opcode 'op_notif env)
+      (opcode-equal? opcode 'op_else env)
+      (opcode-equal? opcode 'op_endif env)
+      (not (member 0 condstack))))
+
 (define (apply-opcode
          code
          script
@@ -18,9 +26,9 @@
          condstack
          [tx (make-transaction #:version-number 0 #:flag 0 #:inputs '() #:outputs '() #:lock-time 0)]
          [input-index '()])
-  (let-values ([(script stack altstack condstack verified)
-                (apply (get-opcode code env) (list script stack altstack condstack tx input-index))])
-    (values script stack altstack condstack verified)))
+  (if (apply? code condstack env)
+      (apply (get-opcode code env) (list script stack altstack condstack tx input-index))
+      (values (rest script) stack altstack condstack #t)))
 
 ;; Evaluate script from given serialized bytes
 (define (eval-script-from-bytes b env stack [altstack '()] [condstack '()])
@@ -47,7 +55,8 @@
              altstack
              condstack
              verified)]
-    [(not (is-opcode? (first script) env))
+    [(and (apply? (first script) condstack env)
+          (not (is-opcode? (first script) env)))
      (error "Bad script ~a ~a ~a ~a\n" (first script) (is-opcode? (first script) env) script stack)]
     [else
      (let-values ([(script stack altstack condstack verified)

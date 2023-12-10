@@ -14,32 +14,21 @@
 (module+ test
   (require rackunit))
 
-(define (jump-to-after opcode script)
-  ;; jump to script just after the first occurrence of opcode
-  (let ([lst (member opcode script)])
-    (cond
-      [lst (rest lst)]
-      [else '()])))
-
-(module+ test
-  (test-case "test jump-to-after"
-    (let ([lst '(1 2 3 4 3 2 1 3)])
-      (check-equal? '(4 3 2 1 3) (jump-to-after 3 lst))
-      (check-equal? '() (jump-to-after 100 lst)))))
-
+;; Determine if the branch should be executed and tracks that in the condstack
+;; Later the apply? function in eval-script will use condstack to decide to execute an opcode or not.
 (define (handle-conditional opcode env script stack altstack condstack)
   (printf "In handle condition ~a ~a\n" script stack)
   (cond
     [(or (and (equal? opcode 'op_if) (= (first stack) 1))
          (and (equal? opcode 'op_notif) (= (first stack) 0)))
-     (eval-script script env (rest stack) altstack)]
+     (eval-script script env (rest stack) altstack (cons 1 condstack))]
     [(or (and (equal? opcode 'op_if) (= (first stack) 0))
          (and (equal? opcode 'op_notif) (= (first stack) 1)))
-     (eval-script (jump-to-after 'op_else script) env (rest stack) altstack)]
+     (eval-script script env (rest stack) altstack (cons 0 condstack))]
     ;; return values of rest script after end, stack, altstack, verified as is the current status
-    [(equal? opcode 'op_else) (eval-script (jump-to-after 'op_endif script) env stack altstack condstack)]
+    [(equal? opcode 'op_else) (eval-script script env stack altstack (cons (- 1 (first condstack)) (rest condstack)))]
     ;; return values of rest script, stack, altstack, verified as is the current status
-    [(equal? opcode 'op_endif) (eval-script script env stack altstack condstack)]))
+    [(equal? opcode 'op_endif) (eval-script script env stack altstack (rest condstack))]))
 
 (define (make-bitcoin-environment)
   (let ([env (make-initial-env)]
@@ -136,7 +125,7 @@
                 '(op_toaltstack)
                 #x6b
                 (lambda (script stack altstack condstack tx input-index)
-                  (values script (rest stack) (cons (first stack) altstack condstack) #t)))
+                  (values script (rest stack) (cons (first stack) altstack) condstack #t)))
     (add-opcode env
                 '(op_fromaltstack)
                 #x6c

@@ -7,7 +7,8 @@
          make-initial-env
          get-hr-opcode
          get-serialized-opcode
-         get-symbol-to-hex)
+         get-symbol-to-hex
+         opcode-equal?)
 
 (require racket/list
          racket/symbol)
@@ -47,6 +48,12 @@
 (define (is-opcode? value env)
   (hash-has-key? (environment-opcodes env) value))
 
+(define (opcode-equal? value other-value env)
+  (and (hash-has-key? (environment-opcodes env) value)
+       (hash-has-key? (environment-opcodes env) other-value)
+       (equal? (hash-ref (environment-opcodes env) value)
+               (hash-ref (environment-opcodes env) other-value))))
+
 (define (make-initial-env)
   (let ([env (environment (make-hash) (make-hash) (make-hash) (make-hash))]) env))
 
@@ -76,4 +83,5 @@
       (check-true (is-opcode? 'op_add env))
       (check-true (is-opcode? 'add env))
       (check-equal? (get-serialized-opcode 'op_add env) #"\223")
-      (check-equal? (get-symbol-to-hex 'op_add env) #x93))))
+      (check-equal? (get-symbol-to-hex 'op_add env) #x93)
+      (check-true (opcode-equal? 'op_add #x93 env)))))
