@@ -6,6 +6,7 @@
          "../transaction.rkt")
 
 (provide apply-opcode
+         skip-apply?
          eval-script
          eval-script-from-bytes)
 
@@ -15,7 +16,10 @@
       (opcode-equal? opcode 'op_notif env)
       (opcode-equal? opcode 'op_else env)
       (opcode-equal? opcode 'op_endif env)
-      (not (member 0 condstack))))
+      (not (skip-apply? condstack))))
+
+(define (skip-apply? condstack)
+  (member 0 condstack))
 
 (define (apply-opcode
          code
@@ -28,7 +32,7 @@
          [input-index '()])
   (if (apply? code condstack env)
       (apply (get-opcode code env) (list script stack altstack condstack tx input-index))
-      (values (rest script) stack altstack condstack #t)))
+      (values script stack altstack condstack #t)))
 
 ;; Evaluate script from given serialized bytes
 (define (eval-script-from-bytes b env stack [altstack '()] [condstack '()])
@@ -46,7 +50,7 @@
              stack
              altstack
              condstack
-             (and verified (not (empty? stack)) (not (equal? (first stack) 0))))]
+             (and verified (or (empty? stack) (not (equal? (first stack) 0)))))]
     [(and (string? (first script))
           (string-prefix? (first script) "'")
           (string-suffix? (first script) "'"))
