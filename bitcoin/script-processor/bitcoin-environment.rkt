@@ -9,23 +9,25 @@
          "../../crypto-utils.rkt"
          "../transaction.rkt")
 
-(provide make-bitcoin-environment)
+(provide make-bitcoin-environment zero)
 
 (module+ test
   (require rackunit))
 
+(define zero #"0")
+
 ;; Determine if the branch should be executed and tracks that in the condstack
 ;; Later the apply? function in eval-script will use condstack to decide to execute an opcode or not.
 (define (handle-conditional opcode script stack altstack condstack)
-  (printf "In handle condition ~a ~a ~a\n" script stack condstack)
+  (printf "In handle condition ~v ~v ~v\n" script stack condstack)
   (cond
-    [(or (and (equal? opcode 'op_if) (= (first stack) 1))
-         (and (equal? opcode 'op_notif) (= (first stack) 0)))
+    [(or (and (equal? opcode 'op_if) (not (equal? (first stack) zero)))
+         (and (equal? opcode 'op_notif) (equal? (first stack) zero)))
      (if (skip-apply? condstack)
          (values script stack altstack (cons 0 condstack) true)
          (values script (rest stack) altstack (cons 1 condstack) true))]
-    [(or (and (equal? opcode 'op_if) (= (first stack) 0))
-         (and (equal? opcode 'op_notif) (= (first stack) 1)))
+    [(or (and (equal? opcode 'op_if) (equal? (first stack) zero))
+         (and (equal? opcode 'op_notif) (not (equal? (first stack) zero))))
      (if (skip-apply? condstack)
          (values script stack altstack (cons 0 condstack) true)
          (values script (rest stack) altstack (cons 0 condstack) true))]
@@ -44,11 +46,11 @@
                 '(op_0 op_false)
                 #x00
                 (lambda (script stack altstack condstack tx input-index)
-                  (values script (cons 0 stack) altstack condstack #t)))
+                  (values script (cons zero stack) altstack condstack #t)))
     (for ([code (in-inclusive-range 1 75)])
       (add-opcode
        env
-       (list (string->symbol (string-join `("op_" ,(~a code)) "")))
+       (list (string->symbol (string-join `("op_" ,(~v code)) "")))
        code
        (lambda (script stack altstack condstack tx input-index)
          (values (safe-tail script 1) (cons (safe-head script 1) stack) altstack condstack #t))))
@@ -79,7 +81,7 @@
                   (values script (cons 1 stack) altstack condstack #t)))
     (for ([code (in-inclusive-range #x52 #x60)])
       (add-opcode env
-                  (list (string->symbol (string-join `("op_" ,(~a (- code 80))) "")))
+                  (list (string->symbol (string-join `("op_" ,(~v (- code 80))) "")))
                   code
                   (lambda (script stack altstack condstack tx input-index)
                     (values script (cons (- code 80) stack) altstack condstack #t))))
@@ -142,7 +144,7 @@
                 #x73
                 (lambda (script stack altstack condstack tx input-index)
                   (cond
-                    [(not (eq? (first stack) 0))
+                    [(not (eq? (first stack) zero))
                      (values script (cons (first stack) stack) altstack condstack #t)]
                     [else (values script stack altstack condstack #t)])))
     (add-opcode env
@@ -202,6 +204,7 @@
                 (lambda (script stack altstack condstack tx input-index)
                   (cond
                     [(empty? stack) (values script stack altstack condstack #t)]
+                    [(equal? (first stack) zero) (values script (rest stack) altstack condstack #t)]
                     [else
                      (let* ([posn (first stack)] [stack (rest stack)])
                        (values script
@@ -378,8 +381,8 @@
      (lambda (script stack altstack condstack tx input-index)
        (cond
          [(empty? stack) (values script stack altstack condstack #t)]
-         [(equal? 0 (first stack)) (values script (cons 1 (rest stack)) altstack condstack #t)]
-         [else (values script (cons 0 (rest stack)) altstack condstack #t)])))
+         [(equal? zero (first stack)) (values script (cons 1 (rest stack)) altstack condstack #t)]
+         [else (values script (cons zero (rest stack)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_0notequal)
@@ -387,7 +390,7 @@
      (lambda (script stack altstack condstack tx input-index)
        (cond
          [(empty? stack) (values script stack altstack condstack #t)]
-         [(equal? 0 (first stack)) (values script (cons 0 (rest stack)) altstack condstack #t)]
+         [(equal? zero (first stack)) (values script (cons zero (rest stack)) altstack condstack #t)]
          [else (values script (cons 1 (rest stack)) altstack condstack #t)])))
     (add-opcode env
                 '(op_add)
@@ -419,18 +422,18 @@
                 (lambda (script stack altstack condstack tx input-index)
                   (cond
                     [(< (length stack) 2) (values script stack altstack condstack #t)]
-                    [(and (not (equal? (first stack) 0)) (not (equal? (second stack) 0)))
+                    [(and (not (equal? (first stack) zero)) (not (equal? (second stack) zero)))
                      (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+                    [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode env
                 '(op_boolor)
                 #x9b
                 (lambda (script stack altstack condstack tx input-index)
                   (cond
                     [(< (length stack) 2) (values script stack altstack condstack #t)]
-                    [(or (not (equal? (first stack) 0)) (not (equal? (second stack) 0)))
+                    [(or (not (equal? (first stack) zero)) (not (equal? (second stack) zero)))
                      (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+                    [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_numequal)
@@ -440,7 +443,7 @@
          [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (equal? (first stack) (second stack)))
           (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+         [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_numequalverify)
@@ -461,7 +464,7 @@
                          (not (number? (second stack)))
                          (not (equal? (first stack) (second stack))))
                      (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+                    [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_lessthan)
@@ -471,7 +474,7 @@
          [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (< (second stack) (first stack)))
           (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+         [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_greaterthan)
@@ -481,7 +484,7 @@
          [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (> (second stack) (first stack)))
           (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+         [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_lessthanorequal)
@@ -491,7 +494,7 @@
          [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (<= (second stack) (first stack)))
           (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+         [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_greaterthanorequal)
@@ -501,7 +504,7 @@
          [(< (length stack) 2) (values script stack altstack condstack #t)]
          [(and (number? (first stack)) (number? (second stack)) (>= (second stack) (first stack)))
           (values script (cons 1 (safe-tail stack 2)) altstack condstack #t)]
-         [else (values script (cons 0 (safe-tail stack 2)) altstack condstack #t)])))
+         [else (values script (cons zero (safe-tail stack 2)) altstack condstack #t)])))
     (add-opcode
      env
      '(op_min)
@@ -534,7 +537,7 @@
                           (<= (third stack) (first stack))
                           (>= (third stack) (second stack)))
                      (values script (cons 1 (safe-tail stack 3)) altstack condstack #t)]
-                    [else (values script (cons 0 (safe-tail stack 3)) altstack condstack #t)])))
+                    [else (values script (cons zero (safe-tail stack 3)) altstack condstack #t)])))
 
     ;; crypto opcodes
     (add-opcode
@@ -615,6 +618,7 @@
                 (lambda (script stack altstack condstack tx input-index)
                   (cond
                     [(or (empty? stack)
+                         (equal? (first stack) zero)
                          (negative? (first stack))
                          (not (or (and (< (first stack) locktime-threshold)
                                        (< (transaction-lock-time tx) locktime-threshold))
@@ -622,7 +626,7 @@
                                        (>= (transaction-lock-time tx) locktime-threshold))))
                          (equal? #xffffffff
                                  (input-sequence (list-ref (transaction-inputs tx) input-index)))
-                         (> (first stack) (transaction-lock-time tx)))
+                         (and (number? (first stack)) (> (first stack) (transaction-lock-time tx))))
                      (values script stack altstack condstack #f)]
                     [else (values script stack altstack condstack #t)])))
     (add-opcode env
