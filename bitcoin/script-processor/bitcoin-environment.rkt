@@ -16,18 +16,22 @@
 
 (define zero #"0")
 
+(define (top-truthy? s)
+  (and (not (empty? s))
+       (not (equal? (first s) zero))))
+
 ;; Determine if the branch should be executed and tracks that in the condstack
 ;; Later the apply? function in eval-script will use condstack to decide to execute an opcode or not.
 (define (handle-conditional opcode script stack altstack condstack)
   (printf "In handle condition ~v ~v ~v\n" script stack condstack)
   (cond
-    [(or (and (equal? opcode 'op_if) (not (equal? (first stack) zero)))
-         (and (equal? opcode 'op_notif) (equal? (first stack) zero)))
+    [(or (and (equal? opcode 'op_if) (top-truthy? stack))
+         (and (equal? opcode 'op_notif) (not (top-truthy? stack))))
      (if (skip-apply? condstack)
          (values script stack altstack (cons 0 condstack) true)
          (values script (rest stack) altstack (cons 1 condstack) true))]
-    [(or (and (equal? opcode 'op_if) (equal? (first stack) zero))
-         (and (equal? opcode 'op_notif) (not (equal? (first stack) zero))))
+    [(or (and (equal? opcode 'op_if) (not (top-truthy? stack)))
+         (and (equal? opcode 'op_notif) (top-truthy? stack)))
      (if (skip-apply? condstack)
          (values script stack altstack (cons 0 condstack) true)
          (values script (rest stack) altstack (cons 0 condstack) true))]

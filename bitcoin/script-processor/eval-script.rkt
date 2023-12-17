@@ -43,7 +43,7 @@
 ;; Script is a script in list format, e.g. '(op_dup op_hash160 #"deadbeef" op_equalverify)
 ;; Return same as apply-opcode (values script stack altstack verified)
 (define (eval-script script env [stack '()] [altstack '()] [condstack '()] [verified #t])
-  (printf "in eval-script ~a ~a ~a ~a\n" script stack condstack verified)
+  (printf "in eval-script ~s ~s ~s ~s\n" script stack condstack verified)
   (cond
     [(empty? script)
      (values script
@@ -61,9 +61,9 @@
              verified)]
     [(and (apply? (first script) condstack env)
           (not (is-opcode? (first script) env)))
-     (error "Bad script ~a ~a ~a ~a\n" (first script) (is-opcode? (first script) env) script stack)]
+     (error "Bad script ~s ~s ~s ~s\n" (first script) (is-opcode? (first script) env) script stack)]
     [else
      (let-values ([(script stack altstack condstack verified)
                    (apply-opcode (first script) (rest script) env stack altstack condstack)])
-       (printf "result: ~a ~a ~a\n" script stack condstack)
+       (printf "result: ~s ~s ~s\n" script stack condstack)
        (eval-script script env stack altstack condstack verified))]))
