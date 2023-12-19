@@ -13,7 +13,7 @@
 
 (define (normalise e env)
   (cond
-    [(regexp-match #rx"^[0-9]+$" e) (serialize-number e env)]
+    [(string->number e) (serialize-number e env)]
     [(and (string-prefix? e "0x") (regexp-match #rx"^[0-9A-Fa-f]+$" (substring e 2)))
      (hex-string->bytes (substring e 2))]
     [(and (string-prefix? e "'") (string-suffix? e "'"))

@@ -7,7 +7,8 @@
          "environment.rkt"
          "eval-script.rkt"
          "../../crypto-utils.rkt"
-         "../transaction.rkt")
+         "../transaction.rkt"
+         "../endian-helper.rkt")
 
 (provide make-bitcoin-environment zero)
 
@@ -19,6 +20,11 @@
 (define (top-truthy? s)
   (and (not (empty? s))
        (not (equal? (first s) zero))))
+
+(define (as-number b)
+  (cond [(equal? b zero) 0]
+        [(number? b) b]
+        [else (read-little-endian-bytes b)]))
 
 ;; Determine if the branch should be executed and tracks that in the condstack
 ;; Later the apply? function in eval-script will use condstack to decide to execute an opcode or not.
@@ -126,7 +132,7 @@
                 '(op_verify)
                 #x69
                 (lambda (script stack altstack condstack tx input-index)
-                  (values script stack altstack condstack (eq? (first stack) 1))))
+                  (values script stack altstack condstack (top-truthy? stack))))
     (add-opcode env
                 '(op_return)
                 #x6a
@@ -186,7 +192,7 @@
                     [(empty? stack) (values script stack altstack condstack #t)]
                     [else
                      (values script
-                             (append (list (second stack) (first stack)) (safe-tail stack 2))
+                             (cons (second stack) stack)
                              altstack
                              condstack
                              #t)])))
@@ -198,7 +204,7 @@
                     [(empty? stack) (values script stack altstack condstack #t)]
                     [else
                      (values script
-                             (cons (list-ref stack (add1 (first stack))) (rest stack))
+                             (cons (list-ref stack (add1 (as-number (first stack)))) (rest stack))
                              altstack
                              condstack
                              #t)])))
@@ -224,7 +230,7 @@
                   (cond
                     [(< (length stack) 3) (values script stack altstack condstack #t)]
                     [else
-                     (let ([posn 3])
+                     (let ([posn 2])
                        (values script
                                (append (cons (list-ref stack posn) (take stack posn))
                                        (safe-tail stack (add1 posn)))
@@ -404,7 +410,7 @@
                     [(< (length stack) 2) (values script stack altstack condstack #t)]
                     [else
                      (values script
-                             (cons (+ (first stack) (second stack)) (safe-tail stack 2))
+                             (cons (+ (as-number (first stack)) (as-number (second stack))) (safe-tail stack 2))
                              altstack
                              condstack
                              #t)])))

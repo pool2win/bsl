@@ -65,5 +65,5 @@
     [else
      (let-values ([(script stack altstack condstack verified)
                    (apply-opcode (first script) (rest script) env stack altstack condstack)])
-       (printf "result: ~s ~s ~s\n" script stack condstack)
+       (printf "result: ~s ~s ~s ~s\n" script stack condstack verified)
        (eval-script script env stack altstack condstack verified))]))
