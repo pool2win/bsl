@@ -284,7 +284,7 @@
                     [else (values script (append (take stack 3) stack) altstack condstack #t)])))
     (add-opcode env
                 '(op_2over)
-                #x6f
+                #x70
                 (lambda (script stack altstack condstack tx input-index)
                   (cond
                     [(< (length stack) 4) (values script stack altstack condstack #t)]
